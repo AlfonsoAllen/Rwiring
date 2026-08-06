@@ -1,0 +1,50 @@
+Package: Rwiring
+Type: Package
+Title: Analysis of Temporal Weighted Interaction Networks
+Version: 0.1.0
+Authors@R: c(
+    person(
+        given = "Alfonso",
+        family = "Allen-Perkins",
+        role = c("aut", "cre"),
+        email = "alfonso.allen@upm.es",
+        comment = c(ORCID = "0000-0003-3547-2190")
+    ),
+    person(
+        given = "Virginia",
+        family = "Dominguez-Garcia",
+        role = "aut",
+        comment = c(ORCID = "0000-0002-4591-4186")
+    ),
+    person(
+        given = "Jose B.",
+        family = "Lanuza",
+        role = "aut",
+        comment = c(ORCID = "0000-0002-0287-409X")
+    ),
+    person(
+        given = "Ignasi",
+        family = "Bartomeus",
+        role = "aut",
+        comment = c(ORCID = "0000-0001-7893-4389")
+    )
+    )
+Description: Tools for preparing, validating and analysing temporal
+    ecological interaction networks. The package supports weighted,
+    binary, directed, undirected, unipartite and multipartite networks,
+    and provides methods to quantify interaction rewiring, changes in
+    interaction strength and temporal network reorganization.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1.0)
+Imports:
+    stats
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0

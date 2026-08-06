@@ -1,0 +1,70 @@
+# History
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+
+# RStudio
+.Rproj.user/
+
+# Build outputs
+*.tar.gz
+*.zip
+*.Rcheck/
+check/
+revdep/
+
+# Documentation
+Meta/
+man/*.html
+
+# pkgdown
+docs/
+
+# Coverage
+coverage/
+*.gcda
+*.gcno
+
+# Test artifacts
+tests/testthat/_snaps/
+tests/testthat/*.Rout*
+tests/testthat/*.fail
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.code-workspace
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+*~
+
+# Compiled objects
+src/*.o
+src/*.so
+src/*.dll
+src/*.dylib
+src/*.a
+src/*.exe
+
+# Python (if used for development)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Quarto
+.quarto/
+
+# Local development
+dev/
+scratch/
+notes/
