@@ -180,9 +180,46 @@ Rwiring includes a synthetic dataset covering every structural rewiring
 category.
 
 ``` r
+library(Rwiring)
+
 data(synthetic_interactions)
 
+# Inspect the original column names
 head(synthetic_interactions)
+
+interactions <- synthetic_interactions
+
+names(interactions) <- c(
+  "Site",
+  "Time",
+  "Origin_node",
+  "Destiny_node",
+  "Strength"
+)
+
+interactions$Origin_guild <- "plant"
+interactions$Destiny_guild <- "pollinator"
+
+head(interactions)
+
+prepared <- prepare_interactions(
+  interactions,
+  directed = FALSE,
+  multipartite = TRUE
+)
+
+prepared
+summary(prepared)
+
+changes <- quantify_network_changes(
+  prepared,
+  site_1 = "Synthetic_meadow",
+  time_1 = 2018,
+  site_2 = "Synthetic_meadow",
+  time_2 = 2019
+)
+
+changes
 ```
 
 ------------------------------------------------------------------------
