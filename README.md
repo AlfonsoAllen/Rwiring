@@ -110,38 +110,6 @@ interactions
 
 ------------------------------------------------------------------------
 
-## Quick start
-
-``` r
-library(Rwiring)
-
-prepared <- prepare_interactions(
-    synthetic_interactions,
-    weighted = TRUE,
-    multipartite = TRUE
-)
-
-changes <- quantify_network_changes(
-    prepared,
-    site_1 = "Site_1",
-    time_1 = 2020,
-    site_2 = "Site_1",
-    time_2 = 2021
-)
-
-summary(changes)
-```
-
-Inspect results:
-
-``` r
-changes$nodes
-changes$links
-changes$structural
-```
-
-------------------------------------------------------------------------
-
 # Structural classification
 
 Rwiring compares two interaction networks and classifies every interaction
@@ -243,19 +211,24 @@ The structural summary additionally reports, for each structural category:
 
 ------------------------------------------------------------------------
 
-## Example dataset
+## Worked example
 
-Rwiring includes a synthetic dataset covering every structural rewiring
-category.
+Rwiring includes a synthetic plant–pollinator dataset spanning three years.
+The dataset was designed to contain examples of all structural change
+categories (persistent interactions, rewiring, species turnover, interaction
+gain, and interaction loss), making it suitable for learning the package
+workflow.
 
-``` r
+```r
 library(Rwiring)
 
+# Load the example dataset
 data(synthetic_interactions)
 
-# Inspect the original column names
+# Inspect its structure
 head(synthetic_interactions)
 
+# Rename the columns to the format expected by Rwiring
 interactions <- synthetic_interactions
 
 names(interactions) <- c(
@@ -266,20 +239,20 @@ names(interactions) <- c(
   "Strength"
 )
 
+# Add guild information (optional, but recommended)
 interactions$Origin_guild <- "plant"
 interactions$Destiny_guild <- "pollinator"
 
-head(interactions)
-
+# Prepare the interaction table
 prepared <- prepare_interactions(
   interactions,
   directed = FALSE,
   multipartite = TRUE
 )
 
-prepared
 summary(prepared)
 
+# Compare two annual networks
 changes <- quantify_network_changes(
   prepared,
   site_1 = "Synthetic_meadow",
@@ -287,22 +260,35 @@ changes <- quantify_network_changes(
   site_2 = "Synthetic_meadow",
   time_2 = 2019
 )
-
-changes
 ```
 
-------------------------------------------------------------------------
+---
 
-## Typical output
+## Exploring the results
 
-``` r
+The resulting object contains four components:
+
+- `comparison`: metadata describing the comparison;
+- `structural`: summary of structural changes;
+- `links`: interaction-level classifications;
+- `nodes`: node-level classifications.
+
+```r
+# Print a concise overview
+changes
+
+# Display a summary
 summary(changes)
 
+# Structural summary
 changes$structural
-changes$links
-changes$nodes
-```
 
+# Link-level classifications
+head(changes$links)
+
+# Node-level classifications
+head(changes$nodes)
+```
 ------------------------------------------------------------------------
 
 ## Citation
