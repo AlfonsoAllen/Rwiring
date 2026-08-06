@@ -55,20 +55,51 @@ quantify_network_changes()
 
 ------------------------------------------------------------------------
 
-## Input data
+# Input data
 
-Each row represents one interaction.
+Rwiring uses a simple edge-list representation of interaction networks, where **each row corresponds to one interaction between two nodes**.
 
-  Site   Time   Origin_node   Destiny_node   Strength
-  ------ ------ ------------- -------------- ----------
-  A      2020   Plant_1       Bee_1          3
-  A      2020   Plant_1       Bee_2          1
-  A      2020   Plant_2       Bee_1          2
+The minimum information required is the identity of the network (`Site` and `Time`) together with the two interacting nodes (`Origin_node` and `Destiny_node`).
 
-Optional columns:
+For weighted networks, an additional `Strength` column can be supplied. If this column is omitted, the network is automatically treated as **binary**, with all interactions assumed to have equal weight.
 
--   `Origin_guild`
--   `Destiny_guild`
+Guild information is optional but recommended for multipartite networks, as it facilitates interpretation and downstream analyses.
+
+## Required and optional columns
+
+| Column | Required | Description |
+|:-------|:--------:|:------------|
+| `Site` | ✓ | Network location identifier. |
+| `Time` | ✓ | Network time identifier. |
+| `Origin_node` | ✓ | First interaction partner. |
+| `Destiny_node` | ✓ | Second interaction partner. |
+| `Strength` | Optional | Interaction weight. If omitted, the network is treated as binary. |
+| `Origin_guild` | Optional | Guild of the origin node. |
+| `Destiny_guild` | Optional | Guild of the destination node. |
+
+## Example
+
+```{r}
+interactions <- data.frame(
+  Site = c("Site_1", "Site_1", "Site_1"),
+  Time = c(2020, 2020, 2021),
+  Origin_node = c("Plant_1", "Plant_2", "Plant_1"),
+  Destiny_node = c("Bee_1", "Bee_2", "Bee_1"),
+  Strength = c(5, 2, 7),
+  Origin_guild = c("Plant", "Plant", "Plant"),
+  Destiny_guild = c("Pollinator", "Pollinator", "Pollinator")
+)
+interactions
+```
+
+## Notes
+
+- `Site` and `Time` jointly identify a network.
+- Multiple interactions may belong to the same network.
+- Node identifiers can be either character strings or numeric values.
+- Interaction strengths must be non-negative.
+- When `Strength` is omitted, all interactions are assumed to have weight 1.
+- Guild columns are optional and ignored for unipartite networks.
 
 ------------------------------------------------------------------------
 
