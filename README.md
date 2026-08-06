@@ -29,7 +29,7 @@ Install the development version from GitHub:
 
 ``` r
 # install.packages("remotes")
-remotes::install_github("JJ-Lab/Rwiring")
+remotes::install_github("AlfonsoAllen/Rwiring")
 library(Rwiring)
 ```
 
