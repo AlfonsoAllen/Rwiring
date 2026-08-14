@@ -8,11 +8,12 @@ networks change across space and time.
 
 The package provides a complete workflow to:
 
--   Prepare and validate interaction datasets.
--   Compare any pair of ecological networks.
--   Classify node persistence and interaction rewiring.
--   Quantify structural changes.
--   Quantify changes in interaction strength for weighted networks.
+- Prepare and validate interaction datasets.
+- Compare any pair of ecological networks.
+- Classify node persistence and species turnover.
+- Classify interaction persistence, loss, gain, and rewiring.
+- Quantify changes in interaction strength.
+- Summarize link changes using a unified classification for binary and weighted networks.
 
 Rwiring supports:
 
@@ -55,10 +56,8 @@ quantify_network_changes()
 where:
 
 - `classify_network_nodes()` classifies species as permanent, lost, or gained;
-- `classify_network_links()` assigns every interaction to one of the seven
-  structural categories;
-- `quantify_network_changes()` summarizes the structural reorganization and,
-  for weighted networks, quantifies changes in interaction strength.
+- `classify_network_links()` classifies interaction persistence, loss, gain, and the mechanism responsible for structural change;
+- `quantify_network_changes()` combines structural information with the direction of strength change and summarizes the resulting link-change categories (seven for binary networks and nine for weighted networks).
 
 ------------------------------------------------------------------------
 
@@ -110,14 +109,13 @@ interactions
 
 ------------------------------------------------------------------------
 
-# Structural classification
+# Classification of network changes
 
-Rwiring compares two interaction networks and classifies every interaction
-according to **two complementary dimensions**:
+Rwiring compares two interaction networks and classifies every interaction according to **three complementary dimensions**:
 
 1. **Direction**: whether the interaction persists, disappears, or appears.
-2. **Mechanism**: whether the change is explained by species turnover or by
-   interaction rewiring among persistent species.
+2. **Mechanism**: whether structural change is caused by interaction rewiring among permanent species or by species turnover.
+3. **Strength direction**: whether interaction strength remains unchanged, decreases, or increases.
 
 The comparison is always **directional**, from **Network 1** to **Network 2**.
 
@@ -143,8 +141,7 @@ Before classifying interactions, every node is classified as:
 | `lost` | Present only in Network 1. |
 | `gained` | Present only in Network 2. |
 
-This node classification is then used to determine the ecological mechanism
-behind each interaction.
+This node classification is then used to determine the mechanism associated with each interaction.
 
 ------------------------------------------------------------------------
 
@@ -159,65 +156,90 @@ Each interaction is assigned one of four mechanisms.
 | `one_non_permanent_node` | One interaction partner is lost or gained. |
 | `two_non_permanent_nodes` | Both interaction partners are lost or gained. |
 
-The seven valid structural categories are therefore:
+## Strength direction
 
-| Direction | Mechanism |
-|-----------|-----------|
-| `persistent` | `permanent` |
-| `lost` | `rewiring` |
-| `lost` | `one_non_permanent_node` |
-| `lost` | `two_non_permanent_nodes` |
-| `gained` | `rewiring` |
-| `gained` | `one_non_permanent_node` |
-| `gained` | `two_non_permanent_nodes` |
+`Strength_direction` describes whether an interaction is unchanged, weakened, or strengthened between the two networks.
 
-No other combinations are allowed.
+| Strength direction | Definition |
+|--------------------|------------|
+| `unchanged` | A persistent interaction whose strength does not change beyond the specified tolerance. |
+| `weakened` | A persistent interaction whose strength decreases, or any lost interaction. |
+| `strengthened` | A persistent interaction whose strength increases, or any gained interaction. |
+
+The tolerance used to distinguish unchanged, weakened, and strengthened persistent interactions can be controlled with the `strength_tolerance` argument of `quantify_network_changes()`.
+
+For binary networks, interaction strengths are 0 or 1. Consequently:
+
+- persistent interactions are always `unchanged`;
+- lost interactions are always `weakened`;
+- gained interactions are always `strengthened`.
+
+# Link-change categories
+
+Rwiring combines `Direction`, `Mechanism`, and `Strength_direction` into a single link-change classification.
+
+## Binary networks
+
+Seven combinations are possible:
+
+| Direction | Mechanism | Strength_direction |
+|-----------|-----------|--------------------|
+| `persistent` | `permanent` | `unchanged` |
+| `lost` | `rewiring` | `weakened` |
+| `lost` | `one_non_permanent_node` | `weakened` |
+| `lost` | `two_non_permanent_nodes` | `weakened` |
+| `gained` | `rewiring` | `strengthened` |
+| `gained` | `one_non_permanent_node` | `strengthened` |
+| `gained` | `two_non_permanent_nodes` | `strengthened` |
+
+## Weighted networks
+
+When interaction strengths are available, persistent interactions between permanent species can additionally become weaker or stronger. This expands the classification to nine possible categories:
+
+| Direction | Mechanism | Strength_direction |
+|-----------|-----------|--------------------|
+| `persistent` | `permanent` | `unchanged` |
+| `persistent` | `permanent` | `weakened` |
+| `persistent` | `permanent` | `strengthened` |
+| `lost` | `rewiring` | `weakened` |
+| `lost` | `one_non_permanent_node` | `weakened` |
+| `lost` | `two_non_permanent_nodes` | `weakened` |
+| `gained` | `rewiring` | `strengthened` |
+| `gained` | `one_non_permanent_node` | `strengthened` |
+| `gained` | `two_non_permanent_nodes` | `strengthened` |
+
+No other combinations are valid.
+
+This unified classification makes the binary case a special case of the weighted framework: binary networks contain seven possible categories, whereas weighted networks contain nine.
 
 ------------------------------------------------------------------------
 
-# Weighted networks
+# Weighted change metrics
 
-When interaction strengths are available, Rwiring additionally quantifies how
-interaction intensity changes between the two networks.
-
-For every interaction, the following quantities are calculated:
+For weighted networks, the link-level classification additionally includes
+quantitative strength-change metrics:
 
 | Variable | Definition |
 |----------|------------|
-| `Strength_network_1` | Interaction strength in Network 1. |
-| `Strength_network_2` | Interaction strength in Network 2. |
 | `Strength_change` | `Strength_network_2 - Strength_network_1`. |
 | `Absolute_strength_change` | Absolute value of `Strength_change`. |
-| `Strength_direction` | Qualitative description of the strength change. |
 
-Persistent interactions are classified as:
+The summary table additionally reports, for each link-change category:
 
-- `strengthened`
-- `weakened`
-- `unchanged`
+- total interaction strength in Network 1;
+- total interaction strength in Network 2;
+- net strength change;
+- total absolute strength change;
+- mean strength change per interaction;
+- mean absolute strength change per interaction.
 
-according to the user-defined `strength_tolerance`.
-
-Lost interactions are always classified as **weakened**, whereas gained
-interactions are always classified as **strengthened**.
-
-The structural summary additionally reports, for each structural category:
-
-- total interaction strength in each network,
-- net strength change,
-- total absolute strength change,
-- mean strength change,
-- mean absolute strength change.
+Categories containing no interactions have `n_links = 0`. In weighted networks, their aggregated strength metrics are reported as zero and their mean strength-change metrics as `NA`.
 
 ------------------------------------------------------------------------
 
-## Worked example
+# Worked example
 
-Rwiring includes a synthetic plant–pollinator dataset spanning three years.
-The dataset was designed to contain examples of all structural change
-categories (persistent interactions, rewiring, species turnover, interaction
-gain, and interaction loss), making it suitable for learning the package
-workflow.
+Rwiring includes a synthetic plant–pollinator dataset spanning three years. The dataset was designed to illustrate the different mechanisms of network change, including interaction persistence, rewiring, species turnover, interaction gain and loss, and changes in interaction strength.
 
 ```r
 library(Rwiring)
@@ -262,14 +284,14 @@ changes <- quantify_network_changes(
 )
 ```
 
----
+------------------------------------------------------------------------
 
 ## Exploring the results
 
-The resulting object contains four components:
+The resulting `network_changes` object contains four components:
 
 - `comparison`: metadata describing the comparison;
-- `structural`: summary of structural changes;
+- `structural`: counts for each valid link-change category and, for weighted networks, aggregated and mean strength-change metrics;
 - `links`: interaction-level classifications;
 - `nodes`: node-level classifications.
 
@@ -280,7 +302,7 @@ changes
 # Display a summary
 summary(changes)
 
-# Structural summary
+# Link-change summary
 changes$structural
 
 # Link-level classifications
