@@ -42,9 +42,9 @@ If \code{NULL}, link classifications are computed internally.}
 \code{Strength > 0} are considered present. Defaults to \code{TRUE}.}
 
 \item{strength_tolerance}{A single finite non-negative numeric value used
-to distinguish unchanged, strengthened, and weakened persistent links.
-Gained and lost links are always classified as strengthened and weakened,
-respectively. Defaults to zero.}
+to distinguish unchanged, strengthened, and weakened persistent links
+in weighted networks. Gained and lost links are always classified as
+strengthened and weakened, respectively. Defaults to zero.}
 }
 \value{
 An object of class \code{network_changes}, created by
@@ -53,32 +53,35 @@ An object of class \code{network_changes}, created by
 \item \code{comparison}: metadata describing the network comparison, including the
 site and time identifiers, comparison type, network properties, and the
 numbers of nodes and links in each network and in their union.
-\item \code{structural}: counts and proportions for each combination of
-\code{Direction} and \code{Mechanism}, complemented with strength metrics for
-weighted networks;
+\item \code{structural}: link counts for each valid combination of \code{Direction},
+\code{Mechanism}, and \code{Strength_direction}, complemented with aggregated
+and mean strength metrics for weighted networks;
 \item \code{links}: link-level classifications for every interaction occurring in
 at least one network. The table includes link presence, interaction
-strength in each network, \code{Direction}, and \code{Mechanism}. For weighted
-networks, it additionally contains \code{Strength_change},
-\code{Absolute_strength_change}, and \code{Strength_direction};
+strength in each network, \code{Direction}, \code{Mechanism}, and
+\code{Strength_direction}. For weighted networks, it additionally contains
+\code{Strength_change} and \code{Absolute_strength_change};
 \item \code{nodes}: node-level classifications.
 }
 }
 \description{
-Compares two interaction networks and summarizes their structural
-reorganization. For weighted networks, the structural summary is
-complemented with aggregated and mean changes in interaction strength.
+Compares two interaction networks and summarizes changes in their
+interaction structure. For weighted networks, changes in interaction
+strength are additionally incorporated into the classification and
+summarized using aggregated and mean strength metrics.
 }
 \details{
 The comparison is directional and is interpreted as the transition from
 network 1 to network 2. Each network is identified by a site-time
 combination.
 
-The structural classification uses:
+Link changes are classified using three complementary dimensions:
 \itemize{
 \item \code{Direction}: \code{"persistent"}, \code{"lost"}, or \code{"gained"};
 \item \code{Mechanism}: \code{"permanent"}, \code{"rewiring"},
-\code{"one_non_permanent_node"}, or \code{"two_non_permanent_nodes"}.
+\code{"one_non_permanent_node"}, or \code{"two_non_permanent_nodes"};
+\item \code{Strength_direction}: \code{"unchanged"}, \code{"weakened"}, or
+\code{"strengthened"}.
 }
 
 When precomputed node or link classifications are supplied, the function
@@ -96,13 +99,20 @@ For weighted networks, the following columns are added to the
 \item \code{mean_absolute_strength_change}: mean absolute change per link.
 }
 
-Aggregate values are zero for structural categories containing no links,
+Aggregate values are zero for link-change categories containing no links,
 whereas mean values are \code{NA}.
 
-All structurally valid combinations of \code{Direction} and \code{Mechanism} are
-included in the \code{structural} table, even when no links belong to a given
-category. Empty categories have zero counts and zero aggregated strengths,
-whereas mean strength statistics are reported as \code{NA}.
+All valid combinations of \code{Direction}, \code{Mechanism}, and
+\code{Strength_direction} are included in the \code{structural} table, even when
+no links belong to a given category.
+
+For binary networks, seven combinations are possible. Persistent links
+are necessarily classified as \code{"unchanged"}, lost links as \code{"weakened"},
+and gained links as \code{"strengthened"}.
+
+For weighted networks, persistent links may additionally be classified as
+\code{"weakened"} or \code{"strengthened"} according to their change in interaction
+strength. Consequently, weighted networks contain nine valid categories.
 
 \code{Strength_direction} is classified as:
 \itemize{
@@ -114,9 +124,12 @@ decreases by more than \code{strength_tolerance};
 exceed \code{strength_tolerance}.
 }
 
-This variable is added only to the returned \code{links} table and is not used
-to define the structural categories.
+\code{Strength_direction} is calculated for both binary and weighted networks
+and is used together with \code{Direction} and \code{Mechanism} to define the
+categories reported in \code{structural}. The tolerance affects only the
+classification of persistent links.
 
-Thus, gained and lost links are always interpreted as strengthened and
-weakened, respectively. The tolerance is applied only to persistent links.
+Empty categories have zero link counts. For weighted networks, empty
+categories also have zero aggregated strength, whereas mean strength
+statistics are reported as \code{NA}.
 }

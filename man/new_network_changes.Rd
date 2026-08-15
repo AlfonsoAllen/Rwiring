@@ -10,8 +10,9 @@ new_network_changes(comparison, structural, links, nodes)
 \item{comparison}{A named list containing metadata describing the network
 comparison.}
 
-\item{structural}{A data frame containing counts, proportions, and, for
-weighted networks, strength summaries for each structural category.}
+\item{structural}{A data frame containing link counts for each valid
+link-change category and, for weighted networks, aggregated and mean
+strength-change summaries.}
 
 \item{links}{A data frame containing one row per link occurring in at least
 one of the compared networks.}
@@ -26,9 +27,9 @@ An object of class \code{network_changes}.
 Low-level constructor for objects of class \code{network_changes}.
 }
 \details{
-The constructor stores the metadata, structural summary, link-level
-classification, and node-level classification generated when comparing
-two interaction networks.
+The constructor stores the comparison metadata, link-change summary,
+link-level classification, and node-level classification generated when
+comparing two interaction networks.
 
 This function is intended for internal use by
 \code{\link[=quantify_network_changes]{quantify_network_changes()}}. Users should normally create

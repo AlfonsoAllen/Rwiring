@@ -26,8 +26,8 @@ An object of class \code{summary.network_changes}, represented as a
 named list containing:
 \itemize{
 \item \code{comparison}: metadata describing the network comparison;
-\item \code{structural}: structural counts, proportions, and, when applicable,
-strength summaries.
+\item \code{structural}: link counts for each valid link-change category and,
+when applicable, aggregated and mean strength-change metrics.
 }
 
 \code{x}, invisibly.
@@ -37,14 +37,13 @@ Displays the main characteristics of a comparison between two interaction
 networks, including the comparison type, network properties, and the
 numbers of nodes and links in each network and in their union.
 
-Creates a compact summary of the structural reorganization between two
-interaction networks.
+Creates a compact summary of link changes between two interaction networks.
 
 Prints the comparison metadata and structural summary returned by
 \code{\link[=summary.network_changes]{summary.network_changes()}}.
 }
 \details{
-The returned object contains the comparison metadata and the structural
+The returned object contains the comparison metadata and the link-change
 summary. For weighted networks, the structural table also contains the
 aggregated and mean strength-change metrics calculated by
 \code{\link[=quantify_network_changes]{quantify_network_changes()}}.

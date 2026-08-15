@@ -24,7 +24,8 @@ The function verifies that:
 \item the object contains \code{comparison}, \code{structural}, \code{links}, and \code{nodes};
 \item the three tabular components are data frames;
 \item the comparison metadata contain the required fields;
-\item the structural table contains the required classification columns;
+\item the \code{structural} table contains the required link-change classification
+columns and link counts;
 \item the link and node tables contain the required identifiers and
 classifications; and
 \item the principal node and link counts are consistent across the object.
