@@ -1,6 +1,6 @@
 Package: Rwiring
 Type: Package
-Title: Analysis of Temporal Weighted Interaction Networks
+Title: Analysis of Changes in Ecological Interaction Networks
 Version: 0.1.0
 Authors@R: c(
     person(
@@ -29,11 +29,13 @@ Authors@R: c(
         comment = c(ORCID = "0000-0001-7893-4389")
     )
     )
-Description: Tools for preparing, validating and analysing temporal
-    ecological interaction networks. The package supports weighted,
-    binary, directed, undirected, unipartite and multipartite networks,
-    and provides methods to quantify interaction rewiring, changes in
-    interaction strength and temporal network reorganization.
+Description: Tools for preparing, validating and comparing ecological
+    interaction networks across space and time. The package supports
+    weighted, binary, directed, undirected, unipartite and multipartite
+    networks, and provides methods to classify species turnover,
+    interaction persistence, gain, loss and rewiring, quantify changes in
+    interaction strength, and summarize link-change patterns between
+    networks.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
