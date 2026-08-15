@@ -4,9 +4,10 @@
 
 #' Quantify changes between two interaction networks
 #'
-#' Compares two interaction networks and summarizes their structural
-#' reorganization. For weighted networks, the structural summary is
-#' complemented with aggregated and mean changes in interaction strength.
+#' Compares two interaction networks and summarizes changes in their
+#' interaction structure. For weighted networks, changes in interaction
+#' strength are additionally incorporated into the classification and
+#' summarized using aggregated and mean strength metrics.
 #'
 #' The comparison is directional and is interpreted as the transition from
 #' network 1 to network 2. Each network is identified by a site-time
@@ -29,9 +30,9 @@
 #' @param active_only Logical. If `TRUE`, only interactions with
 #'   `Strength > 0` are considered present. Defaults to `TRUE`.
 #' @param strength_tolerance A single finite non-negative numeric value used
-#'   to distinguish unchanged, strengthened, and weakened persistent links.
-#'   Gained and lost links are always classified as strengthened and weakened,
-#'   respectively. Defaults to zero.
+#'   to distinguish unchanged, strengthened, and weakened persistent links
+#'   in weighted networks. Gained and lost links are always classified as
+#'   strengthened and weakened, respectively. Defaults to zero.
 #'
 #' @return An object of class `network_changes`, created by
 #' `new_network_changes()`. The object contains four components:
@@ -39,22 +40,24 @@
 #' * `comparison`: metadata describing the network comparison, including the
 #'   site and time identifiers, comparison type, network properties, and the
 #'   numbers of nodes and links in each network and in their union.
-#' * `structural`: counts and proportions for each combination of
-#'   `Direction` and `Mechanism`, complemented with strength metrics for
-#'   weighted networks;
+#' * `structural`: link counts for each valid combination of `Direction`,
+#'   `Mechanism`, and `Strength_direction`, complemented with aggregated
+#'   and mean strength metrics for weighted networks;
 #' * `links`: link-level classifications for every interaction occurring in
 #'   at least one network. The table includes link presence, interaction
-#'   strength in each network, `Direction`, and `Mechanism`. For weighted
-#'   networks, it additionally contains `Strength_change`,
-#'   `Absolute_strength_change`, and `Strength_direction`;
+#'   strength in each network, `Direction`, `Mechanism`, and
+#'   `Strength_direction`. For weighted networks, it additionally contains
+#'   `Strength_change` and `Absolute_strength_change`;
 #' * `nodes`: node-level classifications.
 #'
 #' @details
-#' The structural classification uses:
+#' Link changes are classified using three complementary dimensions:
 #'
 #' * `Direction`: `"persistent"`, `"lost"`, or `"gained"`;
 #' * `Mechanism`: `"permanent"`, `"rewiring"`,
-#'   `"one_non_permanent_node"`, or `"two_non_permanent_nodes"`.
+#'   `"one_non_permanent_node"`, or `"two_non_permanent_nodes"`;
+#' * `Strength_direction`: `"unchanged"`, `"weakened"`, or
+#'   `"strengthened"`.
 #'
 #' When precomputed node or link classifications are supplied, the function
 #' verifies that both tables describe the same network comparison and are
@@ -70,13 +73,20 @@
 #' * `mean_strength_change`: mean signed change per link;
 #' * `mean_absolute_strength_change`: mean absolute change per link.
 #'
-#' Aggregate values are zero for structural categories containing no links,
+#' Aggregate values are zero for link-change categories containing no links,
 #' whereas mean values are `NA`.
 #'
-#' All structurally valid combinations of `Direction` and `Mechanism` are
-#' included in the `structural` table, even when no links belong to a given
-#' category. Empty categories have zero counts and zero aggregated strengths,
-#' whereas mean strength statistics are reported as `NA`.
+#' All valid combinations of `Direction`, `Mechanism`, and
+#' `Strength_direction` are included in the `structural` table, even when
+#' no links belong to a given category.
+#'
+#' For binary networks, seven combinations are possible. Persistent links
+#' are necessarily classified as `"unchanged"`, lost links as `"weakened"`,
+#' and gained links as `"strengthened"`.
+#'
+#' For weighted networks, persistent links may additionally be classified as
+#' `"weakened"` or `"strengthened"` according to their change in interaction
+#' strength. Consequently, weighted networks contain nine valid categories.
 #'
 #' `Strength_direction` is classified as:
 #'
@@ -87,11 +97,14 @@
 #' * `"unchanged"` for persistent links whose absolute strength change does not
 #'   exceed `strength_tolerance`.
 #'
-#' This variable is added only to the returned `links` table and is not used
-#' to define the structural categories.
+#' `Strength_direction` is calculated for both binary and weighted networks
+#' and is used together with `Direction` and `Mechanism` to define the
+#' categories reported in `structural`. The tolerance affects only the
+#' classification of persistent links.
 #'
-#' Thus, gained and lost links are always interpreted as strengthened and
-#' weakened, respectively. The tolerance is applied only to persistent links.
+#' Empty categories have zero link counts. For weighted networks, empty
+#' categories also have zero aggregated strength, whereas mean strength
+#' statistics are reported as `NA`.
 #'
 #' @export
 quantify_network_changes <- function(
@@ -235,9 +248,40 @@ quantify_network_changes <- function(
     )
   }
   
+  # -----------------------------------------------------------------------
+  # Classify direction of strength change
+  # -----------------------------------------------------------------------
+  
+  strength_change <-
+    links$Strength_network_2 -
+    links$Strength_network_1
+  
+  links$Strength_direction <- ifelse(
+    links$Direction == "gained",
+    "strengthened",
+    ifelse(
+      links$Direction == "lost",
+      "weakened",
+      ifelse(
+        abs(strength_change) <= strength_tolerance,
+        "unchanged",
+        ifelse(
+          strength_change > 0,
+          "strengthened",
+          "weakened"
+        )
+      )
+    )
+  )
+  
+  group_vars <- c(
+    "Direction",
+    "Mechanism",
+    "Strength_direction"
+  )
   
   # -----------------------------------------------------------------------
-  # Define all structurally valid categories
+  # Define all valid link-change categories
   # -----------------------------------------------------------------------
   
   category_order <- data.frame(
@@ -259,8 +303,31 @@ quantify_network_changes <- function(
       "one_non_permanent_node",
       "two_non_permanent_nodes"
     ),
+    Strength_direction = c(
+      "unchanged",
+      "weakened",
+      "weakened",
+      "weakened",
+      "strengthened",
+      "strengthened",
+      "strengthened"
+    ),
     stringsAsFactors = FALSE
   )
+  
+  if (isTRUE(x$network_type$weighted)) {
+    
+    category_order <- rbind(
+      category_order[1L, , drop = FALSE],
+      data.frame(
+        Direction = c("persistent", "persistent"),
+        Mechanism = c("permanent", "permanent"),
+        Strength_direction = c("weakened", "strengthened"),
+        stringsAsFactors = FALSE
+      ),
+      category_order[-1L, , drop = FALSE]
+    )
+  }
   
   category_order$.category_order <-
     seq_len(nrow(category_order))
@@ -271,19 +338,16 @@ quantify_network_changes <- function(
   
   observed_counts <- stats::aggregate(
     rep(1L, nrow(links)),
-    by = list(
-      Direction = links$Direction,
-      Mechanism = links$Mechanism
-    ),
+    by = links[group_vars],
     FUN = sum
   )
   
-  names(observed_counts)[3L] <- "n_links"
+  names(observed_counts)[ncol(observed_counts)] <- "n_links"
   
   structural <- merge(
     category_order,
     observed_counts,
-    by = c("Direction", "Mechanism"),
+    by = group_vars,
     all.x = TRUE,
     sort = FALSE
   )
@@ -299,84 +363,25 @@ quantify_network_changes <- function(
   structural$.category_order <- NULL
   rownames(structural) <- NULL
   
-  # -----------------------------------------------------------------------
-  # Structural proportions
-  # -----------------------------------------------------------------------
-  
-  n_all_links <- sum(structural$n_links)
-  
-  n_changed_links <- sum(
-    structural$n_links[
-      structural$Direction %in% c("lost", "gained")
-    ]
-  )
-  
-  structural$proportion_all_links <-
-    structural$n_links / n_all_links
-  
-  direction_totals <- tapply(
-    structural$n_links,
-    structural$Direction,
-    sum
-  )
-  
-  structural$proportion_within_direction <-
-    structural$n_links /
-    unname(direction_totals[structural$Direction])
-  
-  structural$proportion_within_direction[
-    !is.finite(structural$proportion_within_direction)
-  ] <- NA_real_
-  
-  structural$proportion_changed_links <- NA_real_
-  
-  changed_rows <-
-    structural$Direction %in% c("lost", "gained")
-  
-  if (n_changed_links > 0L) {
-    structural$proportion_changed_links[changed_rows] <-
-      structural$n_links[changed_rows] /
-      n_changed_links
-  }
   
   # -----------------------------------------------------------------------
   # Weighted metrics
   # -----------------------------------------------------------------------
   
   if (isTRUE(x$network_type$weighted)) {
-    links$Strength_change <-
-      links$Strength_network_2 -
-      links$Strength_network_1
+    links$Strength_change <- strength_change
     
     links$Absolute_strength_change <-
       abs(links$Strength_change)
     
-    links$Strength_direction <- ifelse(
-      links$Direction == "gained",
-      "strengthened",
-      ifelse(
-        links$Direction == "lost",
-        "weakened",
-        ifelse(
-          abs(links$Strength_change) <= strength_tolerance,
-          "unchanged",
-          ifelse(
-            links$Strength_change > 0,
-            "strengthened",
-            "weakened"
-          )
-        )
-      )
-    )
-    
-    # Aggregated strength within each structural category
+    # Aggregated strength within each link-change category
     strength_totals <- stats::aggregate(
       cbind(
         Strength_network_1,
         Strength_network_2,
         Strength_change,
         Absolute_strength_change
-      ) ~ Direction + Mechanism,
+      ) ~ Direction + Mechanism + Strength_direction,
       data = links,
       FUN = sum
     )
@@ -384,18 +389,19 @@ quantify_network_changes <- function(
     names(strength_totals) <- c(
       "Direction",
       "Mechanism",
+      "Strength_direction",
       "total_strength_network_1",
       "total_strength_network_2",
       "net_strength_change",
       "total_absolute_strength_change"
     )
     
-    # Mean change per link within each structural category
+    # Mean change per link within each link-change category
     strength_means <- stats::aggregate(
       cbind(
         Strength_change,
         Absolute_strength_change
-      ) ~ Direction + Mechanism,
+      ) ~ Direction + Mechanism + Strength_direction,
       data = links,
       FUN = mean
     )
@@ -403,6 +409,7 @@ quantify_network_changes <- function(
     names(strength_means) <- c(
       "Direction",
       "Mechanism",
+      "Strength_direction",
       "mean_strength_change",
       "mean_absolute_strength_change"
     )
@@ -412,7 +419,7 @@ quantify_network_changes <- function(
     structural <- merge(
       structural,
       strength_totals,
-      by = c("Direction", "Mechanism"),
+      by = group_vars,
       all.x = TRUE,
       sort = FALSE
     )
@@ -420,7 +427,7 @@ quantify_network_changes <- function(
     structural <- merge(
       structural,
       strength_means,
-      by = c("Direction", "Mechanism"),
+      by = group_vars,
       all.x = TRUE,
       sort = FALSE
     )
@@ -434,7 +441,7 @@ quantify_network_changes <- function(
     structural$.category_order <- NULL
     rownames(structural) <- NULL
     
-    # Empty structural categories have zero aggregate strength.
+    # Empty link-change categories have zero aggregate strength.
     total_columns <- c(
       "total_strength_network_1",
       "total_strength_network_2",
@@ -478,8 +485,7 @@ quantify_network_changes <- function(
     n_nodes_union = nrow(nodes),
     n_links_network_1 = sum(links$Present_network_1),
     n_links_network_2 = sum(links$Present_network_2),
-    n_links_union = nrow(links),
-    n_changed_links = n_changed_links
+    n_links_union = nrow(links)
   )
   
   return(new_network_changes(

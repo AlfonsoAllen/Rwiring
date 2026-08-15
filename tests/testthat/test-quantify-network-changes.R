@@ -24,7 +24,8 @@ test_that("structural counts reproduce the link-level contingency table", {
 
     observed <- sum(
       changes$links$Direction == row$Direction &
-        changes$links$Mechanism == row$Mechanism
+        changes$links$Mechanism == row$Mechanism &
+        changes$links$Strength_direction == row$Strength_direction
     )
 
     expect_equal(row$n_links, observed)
@@ -37,21 +38,56 @@ test_that("structural counts reproduce the link-level contingency table", {
 })
 
 
-test_that("all seven structural categories are represented in fixed order", {
+test_that("weighted networks contain all nine link-change categories in fixed order", {
   structural <- make_weighted_changes()$structural
+
+  expect_equal(nrow(structural), 9L)
+
+  expect_identical(
+    paste(
+      structural$Direction,
+      structural$Mechanism,
+      structural$Strength_direction
+    ),
+    c(
+      "persistent permanent unchanged",
+      "persistent permanent weakened",
+      "persistent permanent strengthened",
+      "lost rewiring weakened",
+      "lost one_non_permanent_node weakened",
+      "lost two_non_permanent_nodes weakened",
+      "gained rewiring strengthened",
+      "gained one_non_permanent_node strengthened",
+      "gained two_non_permanent_nodes strengthened"
+    )
+  )
+
+  expect_identical(
+    structural$n_links,
+    c(0L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L)
+  )
+})
+
+
+test_that("binary networks contain all seven valid link-change categories", {
+  structural <- make_binary_changes()$structural
 
   expect_equal(nrow(structural), 7L)
 
   expect_identical(
-    paste(structural$Direction, structural$Mechanism),
+    paste(
+      structural$Direction,
+      structural$Mechanism,
+      structural$Strength_direction
+    ),
     c(
-      "persistent permanent",
-      "lost rewiring",
-      "lost one_non_permanent_node",
-      "lost two_non_permanent_nodes",
-      "gained rewiring",
-      "gained one_non_permanent_node",
-      "gained two_non_permanent_nodes"
+      "persistent permanent unchanged",
+      "lost rewiring weakened",
+      "lost one_non_permanent_node weakened",
+      "lost two_non_permanent_nodes weakened",
+      "gained rewiring strengthened",
+      "gained one_non_permanent_node strengthened",
+      "gained two_non_permanent_nodes strengthened"
     )
   )
 
@@ -62,52 +98,17 @@ test_that("all seven structural categories are represented in fixed order", {
 })
 
 
-test_that("structural proportions use the intended denominators", {
+test_that("structural output contains counts but no proportion columns", {
   structural <- make_weighted_changes()$structural
 
-  expect_equal(
-    sum(structural$proportion_all_links),
-    1,
-    tolerance = 1e-12
-  )
-
-  for (direction in unique(structural$Direction)) {
-    selected <- structural$Direction == direction
-    if (sum(structural$n_links[selected]) > 0L) {
-      expect_equal(
-        sum(
-          structural$proportion_within_direction[selected],
-          na.rm = TRUE
-        ),
-        1,
-        tolerance = 1e-12
-      )
-    }
-  }
-
-  persistent <- structural$Direction == "persistent"
-  changed <- !persistent
-
-  expect_true(all(is.na(
-    structural$proportion_changed_links[persistent]
-  )))
-  expect_equal(
-    sum(
-      structural$proportion_changed_links[changed],
-      na.rm = TRUE
-    ),
-    1,
-    tolerance = 1e-12
-  )
-
-  lost_rewiring <- get_structural_row(
-    structural,
-    "lost",
-    "rewiring"
-  )
-  expect_equal(lost_rewiring$proportion_all_links, 1 / 8)
-  expect_equal(lost_rewiring$proportion_within_direction, 1 / 3)
-  expect_equal(lost_rewiring$proportion_changed_links, 1 / 6)
+  expect_true("n_links" %in% names(structural))
+  expect_false(any(
+    c(
+      "proportion_all_links",
+      "proportion_within_direction",
+      "proportion_changed_links"
+    ) %in% names(structural)
+  ))
 })
 
 
@@ -138,10 +139,6 @@ test_that("comparison counts are conserved across all levels", {
   expect_equal(
     changes$comparison$n_links_union,
     nrow(changes$links)
-  )
-  expect_equal(
-    changes$comparison$n_changed_links,
-    sum(changes$links$Direction %in% c("lost", "gained"))
   )
 })
 
@@ -202,7 +199,8 @@ test_that("weighted structural totals and means equal link-level calculations", 
     row <- changes$structural[i, , drop = FALSE]
     selected <-
       changes$links$Direction == row$Direction &
-      changes$links$Mechanism == row$Mechanism
+      changes$links$Mechanism == row$Mechanism &
+      changes$links$Strength_direction == row$Strength_direction
 
     expect_equal(
       row$total_strength_network_1,
@@ -239,37 +237,59 @@ test_that("weighted structural totals and means equal link-level calculations", 
 
 
 test_that("known weighted category values are correct", {
-  structural <- make_weighted_changes()$structural
+  changes <- make_weighted_changes()
+  structural <- changes$structural
+  links <- changes$links
 
-  persistent <- get_structural_row(
-    structural,
-    "persistent",
-    "permanent"
-  )
-  expect_equal(persistent$total_strength_network_1, 9)
-  expect_equal(persistent$total_strength_network_2, 10)
-  expect_equal(persistent$net_strength_change, 1)
-  expect_equal(persistent$total_absolute_strength_change, 5)
-  expect_equal(persistent$mean_strength_change, 0.5)
-  expect_equal(persistent$mean_absolute_strength_change, 2.5)
+  weakened_persistent <- structural[
+    structural$Direction == "persistent" &
+      structural$Mechanism == "permanent" &
+      structural$Strength_direction == "weakened",
+    ,
+    drop = FALSE
+  ]
 
-  lost_rewiring <- get_structural_row(
-    structural,
-    "lost",
-    "rewiring"
-  )
+  strengthened_persistent <- structural[
+    structural$Direction == "persistent" &
+      structural$Mechanism == "permanent" &
+      structural$Strength_direction == "strengthened",
+    ,
+    drop = FALSE
+  ]
+
+  expect_equal(nrow(weakened_persistent), 1L)
+  expect_equal(nrow(strengthened_persistent), 1L)
+  expect_equal(weakened_persistent$n_links, 1L)
+  expect_equal(strengthened_persistent$n_links, 1L)
+  expect_lt(weakened_persistent$net_strength_change, 0)
+  expect_gt(strengthened_persistent$net_strength_change, 0)
+
+  lost_rewiring <- structural[
+    structural$Direction == "lost" &
+      structural$Mechanism == "rewiring" &
+      structural$Strength_direction == "weakened",
+    ,
+    drop = FALSE
+  ]
   expect_equal(lost_rewiring$net_strength_change, -3)
 
-  gained_rewiring <- get_structural_row(
-    structural,
-    "gained",
-    "rewiring"
-  )
+  gained_rewiring <- structural[
+    structural$Direction == "gained" &
+      structural$Mechanism == "rewiring" &
+      structural$Strength_direction == "strengthened",
+    ,
+    drop = FALSE
+  ]
   expect_equal(gained_rewiring$net_strength_change, 7)
+
+  expect_equal(
+    sum(structural$n_links),
+    nrow(links)
+  )
 })
 
 
-test_that("binary results omit weighted change columns", {
+test_that("binary results retain Strength_direction but omit weighted change metrics", {
   binary <- make_binary_changes()
 
   weighted_structural_columns <- c(
@@ -283,9 +303,11 @@ test_that("binary results omit weighted change columns", {
 
   weighted_link_columns <- c(
     "Strength_change",
-    "Absolute_strength_change",
-    "Strength_direction"
+    "Absolute_strength_change"
   )
+
+  expect_true("Strength_direction" %in% names(binary$structural))
+  expect_true("Strength_direction" %in% names(binary$links))
 
   expect_false(any(
     weighted_structural_columns %in% names(binary$structural)
@@ -293,20 +315,55 @@ test_that("binary results omit weighted change columns", {
   expect_false(any(
     weighted_link_columns %in% names(binary$links)
   ))
+
+  expect_true(all(
+    binary$links$Strength_direction[
+      binary$links$Direction == "persistent"
+    ] == "unchanged"
+  ))
+  expect_true(all(
+    binary$links$Strength_direction[
+      binary$links$Direction == "lost"
+    ] == "weakened"
+  ))
+  expect_true(all(
+    binary$links$Strength_direction[
+      binary$links$Direction == "gained"
+    ] == "strengthened"
+  ))
 })
 
 
-test_that("binary and weighted inputs have the same structural classification", {
+test_that("binary and weighted inputs preserve the same Direction-Mechanism totals", {
   weighted <- make_weighted_changes()
   binary <- make_binary_changes()
 
+  collapse_categories <- function(structural) {
+    totals <- stats::aggregate(
+      n_links ~ Direction + Mechanism,
+      data = structural,
+      FUN = sum
+    )
+
+    order_key <- match(
+      paste(totals$Direction, totals$Mechanism),
+      c(
+        "persistent permanent",
+        "lost rewiring",
+        "lost one_non_permanent_node",
+        "lost two_non_permanent_nodes",
+        "gained rewiring",
+        "gained one_non_permanent_node",
+        "gained two_non_permanent_nodes"
+      )
+    )
+
+    totals[order(order_key), , drop = FALSE]
+  }
+
   expect_equal(
-    binary$structural[
-      c("Direction", "Mechanism", "n_links")
-    ],
-    weighted$structural[
-      c("Direction", "Mechanism", "n_links")
-    ]
+    collapse_categories(binary$structural),
+    collapse_categories(weighted$structural)
   )
 })
 

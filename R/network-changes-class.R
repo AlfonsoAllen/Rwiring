@@ -11,9 +11,9 @@
 #'
 #' Low-level constructor for objects of class `network_changes`.
 #'
-#' The constructor stores the metadata, structural summary, link-level
-#' classification, and node-level classification generated when comparing
-#' two interaction networks.
+#' The constructor stores the comparison metadata, link-change summary,
+#' link-level classification, and node-level classification generated when
+#' comparing two interaction networks.
 #'
 #' This function is intended for internal use by
 #' [quantify_network_changes()]. Users should normally create
@@ -21,8 +21,9 @@
 #'
 #' @param comparison A named list containing metadata describing the network
 #'   comparison.
-#' @param structural A data frame containing counts, proportions, and, for
-#'   weighted networks, strength summaries for each structural category.
+#' @param structural A data frame containing link counts for each valid
+#'   link-change category and, for weighted networks, aggregated and mean
+#'   strength-change summaries.
 #' @param links A data frame containing one row per link occurring in at least
 #'   one of the compared networks.
 #' @param nodes A data frame containing one row per node occurring in at least
@@ -68,7 +69,8 @@ new_network_changes <- function(
 #' * the object contains `comparison`, `structural`, `links`, and `nodes`;
 #' * the three tabular components are data frames;
 #' * the comparison metadata contain the required fields;
-#' * the structural table contains the required classification columns;
+#' * the `structural` table contains the required link-change classification
+#'   columns and link counts;
 #' * the link and node tables contain the required identifiers and
 #'   classifications; and
 #' * the principal node and link counts are consistent across the object.
@@ -139,7 +141,7 @@ validate_network_changes <- function(x) {
   
   if (nrow(x$structural) == 0L) {
     stop(
-      "`structural` must contain at least one structural category.",
+      "`structural` must contain at least one link-change category.",
       call. = FALSE
     )
   }
@@ -172,8 +174,7 @@ validate_network_changes <- function(x) {
     "n_nodes_union",
     "n_links_network_1",
     "n_links_network_2",
-    "n_links_union",
-    "n_changed_links"
+    "n_links_union"
   )
   
   missing_comparison_fields <- setdiff(
@@ -249,8 +250,7 @@ validate_network_changes <- function(x) {
     "n_nodes_union",
     "n_links_network_1",
     "n_links_network_2",
-    "n_links_union",
-    "n_changed_links"
+    "n_links_union"
   )
   
   for (field in count_fields) {
@@ -275,10 +275,8 @@ validate_network_changes <- function(x) {
   required_structural_columns <- c(
     "Direction",
     "Mechanism",
-    "n_links",
-    "proportion_all_links",
-    "proportion_within_direction",
-    "proportion_changed_links"
+    "Strength_direction",
+    "n_links"
   )
   
   missing_structural_columns <- setdiff(
@@ -303,7 +301,8 @@ validate_network_changes <- function(x) {
     "Strength_network_1",
     "Strength_network_2",
     "Direction",
-    "Mechanism"
+    "Mechanism",
+    "Strength_direction"
   )
   
   missing_link_columns <- setdiff(
@@ -414,15 +413,6 @@ validate_network_changes <- function(x) {
     )
   }
   
-  if (
-    x$comparison$n_changed_links !=
-    sum(x$links$Direction %in% c("lost", "gained"))
-  ) {
-    stop(
-      "`comparison$n_changed_links` is inconsistent with `links`.",
-      call. = FALSE
-    )
-  }
   
   invisible(x)
 }
@@ -537,14 +527,8 @@ print.network_changes <- function(
     "\n",
     sep = ""
   )
-  cat(
-    "  Changed:    ",
-    comparison$n_changed_links,
-    "\n",
-    sep = ""
-  )
   
-  cat("\nUse `summary()` to inspect structural changes.\n")
+  cat("\nUse `summary()` to inspect link changes.\n")
   
   invisible(x)
 }
@@ -552,10 +536,9 @@ print.network_changes <- function(
 
 #' Summarize a network changes object
 #'
-#' Creates a compact summary of the structural reorganization between two
-#' interaction networks.
+#' Creates a compact summary of link changes between two interaction networks.
 #'
-#' The returned object contains the comparison metadata and the structural
+#' The returned object contains the comparison metadata and the link-change
 #' summary. For weighted networks, the structural table also contains the
 #' aggregated and mean strength-change metrics calculated by
 #' [quantify_network_changes()].
@@ -567,8 +550,8 @@ print.network_changes <- function(
 #'   named list containing:
 #'
 #' * `comparison`: metadata describing the network comparison;
-#' * `structural`: structural counts, proportions, and, when applicable,
-#'   strength summaries.
+#' * `structural`: link counts for each valid link-change category and,
+#'   when applicable, aggregated and mean strength-change metrics.
 #'
 #' @method summary network_changes
 #' @rdname network_changes
@@ -654,8 +637,8 @@ print.summary.network_changes <- function(
     sep = ""
   )
   
-  cat("\nStructural changes\n")
-  cat("------------------\n")
+  cat("\nLink changes\n")
+  cat("------------\n")
   
   print(
     structural,
