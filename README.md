@@ -318,7 +318,57 @@ head(changes$links)
 
 # Node-level classifications
 head(changes$nodes)
+```
 
+### Species turnover
+
+Node-level classifications can be used to inspect species turnover. For example, the number of permanent, lost, and gained nodes in each guild can be obtained with:
+
+```r
+dplyr::count(
+  changes$nodes,
+  Guild,
+  Node_status
+)
+```
+
+### Interaction rewiring
+
+Link-level classifications can be used to identify the interactions responsible for network reorganization. For example, interactions classified as rewiring can be extracted with:
+
+```r
+changes$links |>
+  dplyr::filter(Mechanism == "rewiring") |>
+  dplyr::select(
+    Origin_node,
+    Destiny_node,
+    Direction,
+    Strength_direction
+  )
+```
+
+### Changes in interaction strength
+
+For weighted networks, the persistent interactions showing the largest changes in strength can be identified with:
+
+```r
+changes$links |>
+  dplyr::filter(
+    Direction == "persistent",
+    Strength_direction != "unchanged"
+  ) |>
+  dplyr::arrange(
+    dplyr::desc(Absolute_strength_change)
+  ) |>
+  dplyr::select(
+    Origin_node,
+    Destiny_node,
+    Strength_network_1,
+    Strength_network_2,
+    Strength_direction,
+    Absolute_strength_change
+  ) |>
+  head(10)
 ```
 ------------------------------------------------------------------------
 
