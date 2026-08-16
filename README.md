@@ -14,6 +14,7 @@ The package provides a complete workflow to:
 - Classify interaction persistence, loss, gain, and rewiring.
 - Quantify changes in interaction strength.
 - Summarize link changes using a unified classification for binary and weighted networks.
+- Visualize network changes using interaction or adjacency matrices.
 
 Rwiring supports:
 
@@ -51,13 +52,17 @@ classify_network_links()
         │
         ▼
 quantify_network_changes()
+        │
+        ▼
+plot_network_changes_matrix()
 ```
 
 where:
 
 - `classify_network_nodes()` classifies species as permanent, lost, or gained;
 - `classify_network_links()` classifies interaction persistence, loss, gain, and the mechanism responsible for structural change;
-- `quantify_network_changes()` combines structural information with the direction of strength change and summarizes the resulting link-change categories (seven for binary networks and nine for weighted networks).
+- `quantify_network_changes()` combines structural information with the direction of strength change and summarizes the resulting link-change categories (seven for binary networks and nine for weighted networks);
+- `plot_network_changes_matrix()` provides a matrix-based visualization of interaction persistence, loss, gain, and, for weighted networks, changes in interaction strength.
 
 ------------------------------------------------------------------------
 
@@ -282,6 +287,9 @@ changes <- quantify_network_changes(
   site_2 = "Synthetic_meadow",
   time_2 = 2019
 )
+
+# Visualize the comparison
+plot_network_changes_matrix(changes)
 ```
 
 ------------------------------------------------------------------------
@@ -310,7 +318,115 @@ head(changes$links)
 
 # Node-level classifications
 head(changes$nodes)
+
 ```
+------------------------------------------------------------------------
+
+# Matrix visualization
+
+Network changes can be visualized directly from a `network_changes`
+object using `plot_network_changes_matrix()`.
+
+The matrix representation is selected automatically according to network
+topology and direction:
+
+-   undirected multipartite networks with exactly two guilds are
+    represented as rectangular interaction matrices;
+-   unipartite networks are represented as square adjacency matrices;
+-   directed multipartite networks and multipartite networks with more
+    than two guilds are represented as square adjacency matrices.
+
+Nodes are grouped according to their status in the comparison: permanent
+nodes are shown first, followed by lost and gained nodes. Within each
+group, nodes are ordered alphabetically. For multipartite adjacency
+matrices, guilds form separate alphabetical blocks and node-status
+ordering is applied within each guild.
+
+Interaction change is represented by cell colour:
+
+-   grey: persistent interaction;
+-   orange: lost interaction;
+-   blue: gained interaction.
+
+For persistent interactions in weighted networks, changes in interaction
+strength are additionally represented by symbols:
+
+-   upward triangle: strengthened interaction;
+-   downward triangle: weakened interaction;
+-   no symbol: unchanged interaction.
+
+Lost and gained interactions do not receive strength-change symbols
+because their weakening or strengthening is already implied by their
+structural change.
+
+## Basic visualization
+
+``` r
+plot_network_changes_matrix(changes)
+```
+
+For undirected two-guild multipartite networks, the guild assigned to
+rows can be selected explicitly:
+
+``` r
+plot_network_changes_matrix(
+  changes,
+  row_guild = "plant"
+)
+```
+
+Node labels can be hidden for large networks:
+
+``` r
+plot_network_changes_matrix(
+  changes,
+  show_node_labels = FALSE
+)
+```
+
+## Encoding interaction strength
+
+For weighted networks, interaction magnitude can optionally be
+represented by cell opacity:
+
+``` r
+plot_network_changes_matrix(
+  changes,
+  encode_strength = TRUE
+)
+```
+
+When strength encoding is enabled:
+
+-   persistent links use the mean interaction strength across both
+    networks;
+-   lost links use their strength in Network 1;
+-   gained links use their strength in Network 2.
+
+The minimum opacity can be controlled with `min_alpha`:
+
+``` r
+plot_network_changes_matrix(
+  changes,
+  encode_strength = TRUE,
+  min_alpha = 0.2
+)
+```
+
+A common maximum strength can also be supplied when comparing several
+plots:
+
+``` r
+plot_network_changes_matrix(
+  changes,
+  encode_strength = TRUE,
+  strength_max = 20
+)
+```
+
+Using the same `strength_max` across plots makes opacity directly
+comparable between network comparisons.
+
 ------------------------------------------------------------------------
 
 ## Citation
