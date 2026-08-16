@@ -43,7 +43,8 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1.0)
 Imports:
-    stats
+    stats,
+    ggplot2
 Suggests:
     testthat (>= 3.0.0),
     knitr,
