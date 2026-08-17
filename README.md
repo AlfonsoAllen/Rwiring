@@ -179,11 +179,11 @@ For binary networks, interaction strengths are 0 or 1. Consequently:
 - lost interactions are always `weakened`;
 - gained interactions are always `strengthened`.
 
-# Link-change categories
+## Link-change categories
 
 Rwiring combines `Direction`, `Mechanism`, and `Strength_direction` into a single link-change classification.
 
-## Binary networks
+### Binary networks
 
 Seven combinations are possible:
 
@@ -197,7 +197,7 @@ Seven combinations are possible:
 | `gained` | `one_non_permanent_node` | `strengthened` |
 | `gained` | `two_non_permanent_nodes` | `strengthened` |
 
-## Weighted networks
+### Weighted networks
 
 When interaction strengths are available, persistent interactions between permanent species can additionally become weaker or stronger. This expands the classification to nine possible categories:
 
@@ -376,40 +376,28 @@ changes$links |>
 
 Network changes can be visualized directly from a `network_changes` object using `plot_network_changes_matrix()`.
 
-The matrix representation is selected automatically according to network topology and direction:
+The matrix representation is selected automatically according to network topology and direction. Undirected multipartite networks with exactly two guilds are represented as rectangular interaction matrices, whereas unipartite, directed multipartite, and multipartite networks with more than two guilds are represented as adjacency matrices.
 
--   undirected multipartite networks with exactly two guilds are represented as rectangular interaction matrices;
--   unipartite networks are represented as square adjacency matrices;
--   directed multipartite networks and multipartite networks with more than two guilds are represented as square adjacency matrices.
-
-Nodes are grouped according to their status in the comparison: permanent nodes are shown first, followed by lost and gained nodes. Within each group, nodes are ordered alphabetically. For multipartite adjacency matrices, guilds form separate alphabetical blocks and node-status ordering is applied within each guild.
+Nodes are grouped according to their status in the comparison, with permanent nodes followed by lost and gained nodes.
 
 Interaction change is represented by cell colour:
 
--   grey: persistent interaction;
--   orange: lost interaction;
--   blue: gained interaction.
+- grey: persistent interaction;
+- orange: lost interaction;
+- blue: gained interaction.
 
-For persistent interactions in weighted networks, changes in interaction strength are additionally represented by symbols:
+For persistent interactions in weighted networks, upward and downward triangles indicate strengthening and weakening, respectively. Lost and gained interactions do not receive strength-change symbols because their direction of change is already implied by their structural classification.
 
--   upward triangle: strengthened interaction;
--   downward triangle: weakened interaction;
--   no symbol: unchanged interaction.
+Cells that cannot represent a valid interaction in either network are shown with a light grey background. These include combinations between lost and gained nodes and, depending on network topology, within-guild interactions or disallowed self-links. Empty cells without this background represent structurally possible interactions that were not observed in either network.
 
-Lost and gained interactions do not receive strength-change symbols because their weakening or strengthening is already implied by their structural change.
-
-For weighted networks, interaction magnitude can optionally be encoded by cell opacity using `encode_strength = TRUE`. Persistent interactions use their mean strength across the two networks, whereas lost and gained interactions use their strength in network 1 and network 2, respectively. The `strength_max` argument can be used to apply a common opacity scale
-across multiple network comparisons.
-
-Matrix cells that cannot represent a valid interaction in either network are shown with a light grey background. These structurally impossible cells include combinations of lost and gained nodes, which never coexist in either network. In multipartite adjacency matrices, within-guild combinations are also considered impossible. In unipartite adjacency matrices, diagonal cells are considered impossible when self-links are not allowed. Empty cells without this background represent interactions that are structurally possible but were not observed in either network.
-
-For example, the network changes can be visualized using the default representation:
+A comparison can be visualized using:
 
 ```r
 plot_network_changes_matrix(changes)
 ```
 
-For weighted networks, interaction strength can additionally be encoded by cell opacity:
+For weighted networks, interaction magnitude can additionally be encoded
+by cell opacity:
 
 ```r
 plot_network_changes_matrix(
@@ -418,69 +406,7 @@ plot_network_changes_matrix(
 )
 ```
 
-## Basic visualization
-
-``` r
-plot_network_changes_matrix(changes)
-```
-
-For undirected two-guild multipartite networks, the guild assigned to rows can be selected explicitly:
-
-``` r
-plot_network_changes_matrix(
-  changes,
-  row_guild = "plant"
-)
-```
-
-Node labels can be hidden for large networks:
-
-``` r
-plot_network_changes_matrix(
-  changes,
-  show_node_labels = FALSE
-)
-```
-
-## Encoding interaction strength
-
-For weighted networks, interaction magnitude can optionally be represented by cell opacity:
-
-``` r
-plot_network_changes_matrix(
-  changes,
-  encode_strength = TRUE
-)
-```
-
-When strength encoding is enabled:
-
--   persistent links use the mean interaction strength across both
-    networks;
--   lost links use their strength in Network 1;
--   gained links use their strength in Network 2.
-
-The minimum opacity can be controlled with `min_alpha`:
-
-``` r
-plot_network_changes_matrix(
-  changes,
-  encode_strength = TRUE,
-  min_alpha = 0.2
-)
-```
-
-A common maximum strength can also be supplied when comparing several plots:
-
-``` r
-plot_network_changes_matrix(
-  changes,
-  encode_strength = TRUE,
-  strength_max = 20
-)
-```
-
-Using the same `strength_max` across plots makes opacity directly comparable between network comparisons.
+Persistent interactions use their mean strength across the two networks, whereas lost and gained interactions use their strength in Network 1 and Network 2, respectively.
 
 ------------------------------------------------------------------------
 
