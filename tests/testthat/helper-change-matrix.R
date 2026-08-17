@@ -191,6 +191,46 @@ make_undirected_two_guild_matrix_changes <- function() {
 }
 
 
+make_self_link_matrix_changes <- function() {
+  
+  data <- data.frame(
+    Site = rep("site_1", 6),
+    Time = c(
+      "early", "early", "early",
+      "late", "late", "late"
+    ),
+    Origin_node = c(
+      "node_a", "node_a", "node_b",
+      "node_a", "node_a", "node_b"
+    ),
+    Destiny_node = c(
+      "node_a", "node_b", "node_c",
+      "node_a", "node_b", "node_c"
+    ),
+    Strength = c(
+      2, 3, 1,
+      4, 5, 2
+    ),
+    stringsAsFactors = FALSE
+  )
+  
+  prepared <- prepare_interactions(
+    data,
+    directed = FALSE,
+    multipartite = FALSE,
+    allow_self_links = TRUE
+  )
+  
+  quantify_network_changes(
+    prepared,
+    site_1 = "site_1",
+    time_1 = "early",
+    site_2 = "site_1",
+    time_2 = "late"
+  )
+}
+
+
 expect_status_order <- function(nodes) {
   
   status_levels <- c(

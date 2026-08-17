@@ -57,6 +57,11 @@
 #' * `column_nodes`: ordered node information for matrix columns;
 #' * `cells`: link-level classification data together with `Row_node`,
 #'   `Column_node`, `Row_index`, and `Column_index`;
+#' * `impossible_cells`: matrix positions corresponding to node pairs that
+#'   cannot represent a valid interaction in either compared network because
+#'   the nodes do not coexist, because the interaction would violate
+#'   multipartite guild structure, or because it represents a disallowed
+#'   self-link;
 #' * `row_boundaries`: positions separating node-status groups along rows;
 #' * `column_boundaries`: positions separating node-status groups along
 #'   columns;
@@ -64,6 +69,17 @@
 #'   when applicable;
 #' * `column_guild_boundaries`: positions separating guild blocks along
 #'   columns when applicable.
+#'
+#' Matrix cells that cannot represent a valid interaction are identified
+#' separately in `impossible_cells`. These include combinations between a
+#' lost and a gained node, since those nodes do not coexist in either network.
+#' For multipartite adjacency matrices, within-guild combinations are also
+#' considered impossible. For unipartite adjacency matrices, diagonal cells
+#' are considered impossible when self-links are not allowed.
+#'
+#' Empty matrix cells not included in `impossible_cells` represent
+#' interactions that are structurally possible but were not observed in
+#' either network.
 #'
 #' Boundary positions are expressed halfway between adjacent matrix cells
 #' (for example, `3.5` separates cells 3 and 4) so that they can be used
@@ -82,6 +98,7 @@ build_network_change_matrix <- function(
   
   topology <- x$comparison$topology
   directed <- x$comparison$directed
+  allow_self_links <- x$comparison$allow_self_links
   
   # -----------------------------------------------------------------------
   # Determine matrix layout
@@ -146,6 +163,112 @@ build_network_change_matrix <- function(
     guild <- as.character(node_table$Guild)
     
     which(guild[-1L] != guild[-length(guild)]) + 0.5
+  }
+  
+  # -----------------------------------------------------------------------
+  # Helper: structurally impossible matrix cells
+  # -----------------------------------------------------------------------
+  
+  impossible_matrix_cells <- function(
+    row_nodes,
+    column_nodes,
+    layout,
+    topology,
+    allow_self_links
+  ) {
+    
+    grid <- expand.grid(
+      Row_index = seq_len(nrow(row_nodes)),
+      Column_index = seq_len(nrow(column_nodes)),
+      KEEP.OUT.ATTRS = FALSE,
+      stringsAsFactors = FALSE
+    )
+    
+    grid$Row_node <- as.character(
+      row_nodes$Node[grid$Row_index]
+    )
+    
+    grid$Column_node <- as.character(
+      column_nodes$Node[grid$Column_index]
+    )
+    
+    grid$Row_status <- as.character(
+      row_nodes$Node_status[grid$Row_index]
+    )
+    
+    grid$Column_status <- as.character(
+      column_nodes$Node_status[grid$Column_index]
+    )
+    
+    # Lost and gained nodes never coexist in either network.
+    temporal_impossible <-
+      (
+        grid$Row_status == "lost" &
+          grid$Column_status == "gained"
+      ) |
+      (
+        grid$Row_status == "gained" &
+          grid$Column_status == "lost"
+      )
+    
+    topology_impossible <- rep(
+      FALSE,
+      nrow(grid)
+    )
+    
+    # Within-guild links are impossible in multipartite adjacency matrices.
+    if (
+      layout == "adjacency" &&
+      topology == "multipartite"
+    ) {
+      
+      row_guild <- as.character(
+        row_nodes$Guild[grid$Row_index]
+      )
+      
+      column_guild <- as.character(
+        column_nodes$Guild[grid$Column_index]
+      )
+      
+      topology_impossible <-
+        row_guild == column_guild
+    }
+    
+    self_link_impossible <- rep(
+      FALSE,
+      nrow(grid)
+    )
+    
+    # Diagonal cells are impossible when self-links are not allowed.
+    if (
+      layout == "adjacency" &&
+      topology == "unipartite" &&
+      !isTRUE(allow_self_links)
+    ) {
+      
+      self_link_impossible <-
+        grid$Row_node == grid$Column_node
+    }
+    
+    impossible <-
+      temporal_impossible |
+      topology_impossible |
+      self_link_impossible
+    
+    result <- grid[
+      impossible,
+      c(
+        "Row_index",
+        "Column_index",
+        "Row_node",
+        "Column_node"
+      ),
+      drop = FALSE
+    ]
+    
+    rownames(result) <- NULL
+    
+    result
   }
   
   # -----------------------------------------------------------------------
@@ -265,6 +388,14 @@ build_network_change_matrix <- function(
     
     rownames(cells) <- NULL
     
+    impossible_cells <- impossible_matrix_cells(
+      row_nodes = row_nodes,
+      column_nodes = column_nodes,
+      layout = layout,
+      topology = topology,
+      allow_self_links = allow_self_links
+    )
+    
     return(list(
       layout = layout,
       directed = directed,
@@ -273,6 +404,7 @@ build_network_change_matrix <- function(
       row_nodes = row_nodes,
       column_nodes = column_nodes,
       cells = cells,
+      impossible_cells = impossible_cells,
       row_boundaries = status_boundaries(row_nodes),
       column_boundaries = status_boundaries(column_nodes),
       row_guild_boundaries = numeric(0),
@@ -348,13 +480,26 @@ build_network_change_matrix <- function(
   
   if (!isTRUE(directed)) {
     
-    mirrored <- cells
+    off_diagonal <-
+      cells$Row_node != cells$Column_node
     
-    mirrored$Row_node <- cells$Column_node
-    mirrored$Column_node <- cells$Row_node
+    mirrored <- cells[
+      off_diagonal,
+      ,
+      drop = FALSE
+    ]
     
-    mirrored$Row_index <- cells$Column_index
-    mirrored$Column_index <- cells$Row_index
+    mirrored$Row_node <-
+      cells$Column_node[off_diagonal]
+    
+    mirrored$Column_node <-
+      cells$Row_node[off_diagonal]
+    
+    mirrored$Row_index <-
+      cells$Column_index[off_diagonal]
+    
+    mirrored$Column_index <-
+      cells$Row_index[off_diagonal]
     
     cells <- rbind(
       cells,
@@ -377,6 +522,14 @@ build_network_change_matrix <- function(
   # Return matrix representation
   # -----------------------------------------------------------------------
   
+  impossible_cells <- impossible_matrix_cells(
+    row_nodes = row_nodes,
+    column_nodes = column_nodes,
+    layout = layout,
+    topology = topology,
+    allow_self_links = allow_self_links
+  )
+  
   list(
     layout = layout,
     directed = directed,
@@ -385,6 +538,7 @@ build_network_change_matrix <- function(
     row_nodes = row_nodes,
     column_nodes = column_nodes,
     cells = cells,
+    impossible_cells = impossible_cells,
     row_boundaries = status_boundaries(row_nodes),
     column_boundaries = status_boundaries(column_nodes),
     row_guild_boundaries = if (topology == "multipartite") {

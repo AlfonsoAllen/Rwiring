@@ -38,6 +38,71 @@ test_that("structural counts reproduce the link-level contingency table", {
 })
 
 
+test_that("comparison metadata preserve self-link permissions", {
+  
+  prepared <- make_weighted_prepared()
+  
+  changes <- quantify_network_changes(
+    prepared,
+    "site_1", "early",
+    "site_1", "late"
+  )
+  
+  expect_identical(
+    changes$comparison$allow_self_links,
+    prepared$network_type$allow_self_links
+  )
+})
+
+
+test_that("unipartite self-link permissions are preserved", {
+  
+  dat <- data.frame(
+    Site = c(
+      "site_1", "site_1",
+      "site_1", "site_1"
+    ),
+    Time = c(
+      "early", "early",
+      "late", "late"
+    ),
+    Origin_node = c(
+      "A", "A",
+      "A", "A"
+    ),
+    Destiny_node = c(
+      "A", "B",
+      "A", "B"
+    ),
+    Strength = c(
+      2, 3,
+      4, 5
+    )
+  )
+  
+  prepared <- prepare_interactions(
+    dat,
+    directed = FALSE,
+    multipartite = FALSE,
+    allow_self_links = TRUE
+  )
+  
+  changes <- quantify_network_changes(
+    prepared,
+    "site_1", "early",
+    "site_1", "late"
+  )
+  
+  expect_true(
+    prepared$network_type$allow_self_links
+  )
+  
+  expect_true(
+    changes$comparison$allow_self_links
+  )
+})
+
+
 test_that("weighted networks contain all nine link-change categories in fixed order", {
   structural <- make_weighted_changes()$structural
 

@@ -23,6 +23,7 @@ test_that("valid weighted multipartite data are prepared", {
   expect_true(x$network_type$directed)
   expect_identical(x$network_type$topology, "multipartite")
   expect_true(x$network_type$weighted)
+  expect_false(x$network_type$allow_self_links)
   expect_true(x$network_type$has_guilds)
   expect_identical(x$network_type$n_guilds, 2L)
   expect_equal(x$network_type$guilds, c("plant", "pollinator"))
@@ -278,6 +279,7 @@ test_that("self-links can be allowed in unipartite networks", {
     x <- prepare_interactions(dat, allow_self_links = TRUE)
   )
   expect_equal(nrow(x$interactions), 1L)
+  expect_true(x$network_type$allow_self_links)
 })
 
 test_that("self-links remain invalid in multipartite networks", {
@@ -296,6 +298,37 @@ test_that("self-links remain invalid in multipartite networks", {
     ),
     "assigned to more than one guild|Self-links are not allowed"
   )
+})
+
+test_that("self-link permission is stored in network metadata", {
+  dat <- make_weighted_data()[1, c(
+    "Site", "Time", "Origin_node", "Destiny_node", "Strength"
+  )]
+  
+  x <- prepare_interactions(
+    dat,
+    multipartite = FALSE
+  )
+  
+  expect_false(x$network_type$allow_self_links)
+  
+  y <- prepare_interactions(
+    dat,
+    multipartite = FALSE,
+    allow_self_links = TRUE
+  )
+  
+  expect_true(y$network_type$allow_self_links)
+})
+
+test_that("multipartite networks store self-link permission as false", {
+  x <- prepare_interactions(
+    make_weighted_data(),
+    multipartite = TRUE,
+    allow_self_links = TRUE
+  )
+  
+  expect_false(x$network_type$allow_self_links)
 })
 
 test_that("undirected links are canonicalized", {
@@ -437,9 +470,16 @@ test_that("summary and as.data.frame methods are coherent", {
   expect_equal(s$n_unique_links, 2L)
   expect_equal(s$total_strength, 14)
   expect_equal(as.data.frame(x), x$interactions)
+  expect_false(s$allow_self_links)
 
   summary_output <- paste(capture.output(print(s)), collapse = "\n")
   expect_match(summary_output, "Recorded links:  4", fixed = TRUE)
   expect_match(summary_output, "Unique links:    2", fixed = TRUE)
   expect_false(grepl("Node names", summary_output, fixed = TRUE))
+  expect_match(
+    summary_output,
+    "Self-links:      not allowed",
+    fixed = TRUE
+  )
 })
+

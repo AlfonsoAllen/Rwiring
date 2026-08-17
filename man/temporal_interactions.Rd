@@ -35,7 +35,8 @@ A data frame containing the standardized interaction table.
 \description{
 Displays the principal characteristics of a
 \code{temporal_interactions} object, including the number of rows, sites and time
-points, the network type, the detected guilds, and all node identifiers.
+points, network type, self-link permissions, detected guilds, and all node
+identifiers.
 
 Computes a compact summary of a \code{temporal_interactions} object.
 
@@ -59,7 +60,7 @@ The summary includes:
 \item the number of unique nodes;
 \item the number of recorded and unique links;
 \item total, mean and median interaction strength;
-\item network type and guild information; and
+\item network type, self-link permissions, and guild information; and
 \item diagnostics generated during data preparation.
 }
 

@@ -3,7 +3,9 @@
 #' Visualizes changes between two interaction networks using the matrix
 #' representation created internally by [build_network_change_matrix()].
 #'
-#' Interaction persistence, loss, and gain are represented by cell colour.
+#' Interaction persistence, loss, and gain are represented by cell colour,
+#' whereas structurally impossible node combinations are shown with a light
+#' grey background.
 #' For persistent interactions in weighted networks, changes in interaction
 #' strength can additionally be indicated by upward and downward triangles.
 #' Interaction strength can also be optionally encoded by cell opacity.
@@ -61,6 +63,16 @@
 #' The default colours use grey for persistent interactions, orange for lost
 #' interactions, and blue for gained interactions.
 #'
+#' Matrix cells shown with a light grey background represent node pairs that
+#' cannot form a valid interaction in either compared network. These include
+#' combinations between lost and gained nodes, which never coexist in the
+#' same network. In multipartite adjacency matrices, within-guild combinations
+#' are also structurally impossible. In unipartite adjacency matrices,
+#' diagonal cells are shown as impossible when self-links are not allowed.
+#'
+#' Empty white cells represent interactions that are structurally possible
+#' but were not observed in either network.
+#'
 #' Strength-change symbols are used only for persistent interactions because
 #' the strength direction of lost and gained interactions is already implied
 #' by their structural change. Persistent interactions are represented as:
@@ -97,6 +109,7 @@
 #'
 #' @seealso [quantify_network_changes()]
 #'
+#' @importFrom rlang .data
 #' @export
 plot_network_changes_matrix <- function(
     x,
@@ -188,6 +201,8 @@ plot_network_changes_matrix <- function(
   
   cells <- matrix_data$cells
   
+  impossible_cells <- matrix_data$impossible_cells
+  
   # -----------------------------------------------------------------------
   # Strength encoding
   # -----------------------------------------------------------------------
@@ -237,17 +252,32 @@ plot_network_changes_matrix <- function(
   # Base plot
   # -----------------------------------------------------------------------
   
-  p <- ggplot2::ggplot(
-    cells,
-    ggplot2::aes(
-      x = Column_index,
-      y = Row_index
-    )
-  ) +
+  p <- ggplot2::ggplot()
+  
+  if (nrow(impossible_cells) > 0L) {
+    
+    p <- p +
+      ggplot2::geom_tile(
+        data = impossible_cells,
+        ggplot2::aes(
+          x =.data$Column_index,
+          y =.data$Row_index
+        ),
+        inherit.aes = FALSE,
+        width = 1,
+        height = 1,
+        fill = "grey90"
+      )
+  }
+  
+  p <- p +
     ggplot2::geom_tile(
+      data = cells,
       ggplot2::aes(
-        fill = Direction,
-        alpha = Plot_alpha
+        x =.data$Column_index,
+        y =.data$Row_index,
+        fill =.data$Direction,
+        alpha =.data$Plot_alpha
       ),
       width = 0.9,
       height = 0.9
@@ -290,9 +320,9 @@ plot_network_changes_matrix <- function(
         ggplot2::geom_point(
           data = symbol_cells,
           ggplot2::aes(
-            x = Column_index,
-            y = Row_index,
-            shape = Strength_symbol
+            x =.data$Column_index,
+            y =.data$Row_index,
+            shape =.data$Strength_symbol
           ),
           inherit.aes = FALSE,
           size = 2.5,

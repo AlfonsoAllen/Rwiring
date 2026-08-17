@@ -51,8 +51,9 @@ An object of class \code{network_changes}, created by
 \code{new_network_changes()}. The object contains four components:
 \itemize{
 \item \code{comparison}: metadata describing the network comparison, including the
-site and time identifiers, comparison type, network properties, and the
-numbers of nodes and links in each network and in their union.
+site and time identifiers, comparison type, network properties,
+self-link permissions, and the numbers of nodes and links in each network
+and in their union.
 \item \code{structural}: link counts for each valid combination of \code{Direction},
 \code{Mechanism}, and \code{Strength_direction}, complemented with aggregated
 and mean strength metrics for weighted networks;
@@ -132,4 +133,8 @@ classification of persistent links.
 Empty categories have zero link counts. For weighted networks, empty
 categories also have zero aggregated strength, whereas mean strength
 statistics are reported as \code{NA}.
+
+Network properties stored in \code{comparison}, including whether self-links are
+allowed, are inherited from the \code{temporal_interactions} object and are not
+recalculated during the comparison.
 }

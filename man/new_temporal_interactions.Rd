@@ -9,6 +9,7 @@ new_temporal_interactions(
   directed,
   topology,
   weighted,
+  allow_self_links,
   has_guilds,
   n_guilds,
   guilds = NULL,
@@ -29,6 +30,10 @@ network is directed.}
 \item{weighted}{A single non-missing logical value indicating whether
 \code{Strength} represents quantitative interaction weights rather than binary
 presence.}
+
+\item{allow_self_links}{A single non-missing logical value indicating
+whether self-links are allowed. This can be \code{TRUE} only for unipartite
+networks.}
 
 \item{has_guilds}{A single non-missing logical value indicating whether
 guild information was supplied.}

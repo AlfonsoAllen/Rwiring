@@ -3,6 +3,64 @@
 # =============================================================================
 
 
+get_interaction_tile_layer <- function(p) {
+  
+  tile_indices <- which(vapply(
+    p$layers,
+    function(layer) {
+      inherits(layer$geom, "GeomTile")
+    },
+    logical(1)
+  ))
+  
+  interaction_indices <- tile_indices[
+    vapply(
+      p$layers[tile_indices],
+      function(layer) {
+        is.data.frame(layer$data) &&
+          "Direction" %in% names(layer$data)
+      },
+      logical(1)
+    )
+  ]
+  
+  interaction_indices[1L]
+}
+
+
+get_impossible_tile_layer <- function(p) {
+  
+  tile_indices <- which(vapply(
+    p$layers,
+    function(layer) {
+      inherits(layer$geom, "GeomTile")
+    },
+    logical(1)
+  ))
+  
+  impossible_indices <- tile_indices[
+    vapply(
+      p$layers[tile_indices],
+      function(layer) {
+        is.data.frame(layer$data) &&
+          all(
+            c(
+              "Row_index",
+              "Column_index",
+              "Row_node",
+              "Column_node"
+            ) %in% names(layer$data)
+          ) &&
+          !"Direction" %in% names(layer$data)
+      },
+      logical(1)
+    )
+  ]
+  
+  impossible_indices[1L]
+}
+
+
 test_that("plot_network_changes_matrix returns a ggplot object", {
   
   changes <- make_undirected_two_guild_matrix_changes()
@@ -182,15 +240,7 @@ test_that("strength encoding is disabled by default", {
   
   built <- ggplot2::ggplot_build(p)
   
-  tile_layers <- vapply(
-    p$layers,
-    function(layer) {
-      inherits(layer$geom, "GeomTile")
-    },
-    logical(1)
-  )
-  
-  tile_index <- which(tile_layers)[1L]
+  tile_index <- get_interaction_tile_layer(p)
   
   tile_data <- built$data[[tile_index]]
   
@@ -210,15 +260,7 @@ test_that("strength encoding produces alpha values between min_alpha and one", {
   
   built <- ggplot2::ggplot_build(p)
   
-  tile_layers <- vapply(
-    p$layers,
-    function(layer) {
-      inherits(layer$geom, "GeomTile")
-    },
-    logical(1)
-  )
-  
-  tile_index <- which(tile_layers)[1L]
+  tile_index <- get_interaction_tile_layer(p)
   
   alpha <- built$data[[tile_index]]$alpha
   
@@ -241,15 +283,7 @@ test_that("strength_max limits opacity scaling", {
   
   built <- ggplot2::ggplot_build(p)
   
-  tile_layers <- vapply(
-    p$layers,
-    function(layer) {
-      inherits(layer$geom, "GeomTile")
-    },
-    logical(1)
-  )
-  
-  tile_index <- which(tile_layers)[1L]
+  tile_index <- get_interaction_tile_layer(p)
   
   alpha <- built$data[[tile_index]]$alpha
   
@@ -501,5 +535,79 @@ test_that("matrix plot includes a panel border", {
   expect_s3_class(
     p$theme$panel.border,
     "element_rect"
+  )
+})
+
+
+test_that("structurally impossible cells are plotted", {
+  
+  changes <- make_undirected_two_guild_matrix_changes()
+  
+  matrix_data <- build_network_change_matrix(changes)
+  
+  expect_gt(
+    nrow(matrix_data$impossible_cells),
+    0L
+  )
+  
+  p <- plot_network_changes_matrix(changes)
+  
+  impossible_index <- get_impossible_tile_layer(p)
+  
+  expect_false(is.na(impossible_index))
+  
+  plotted <- p$layers[[impossible_index]]$data
+  
+  expect_equal(
+    nrow(plotted),
+    nrow(matrix_data$impossible_cells)
+  )
+  
+  expected_keys <- paste(
+    matrix_data$impossible_cells$Column_index,
+    matrix_data$impossible_cells$Row_index
+  )
+  
+  observed_keys <- paste(
+    plotted$Column_index,
+    plotted$Row_index
+  )
+  
+  expect_setequal(
+    observed_keys,
+    expected_keys
+  )
+})
+
+
+test_that("structurally impossible cells use a light grey background", {
+  
+  changes <- make_undirected_two_guild_matrix_changes()
+  
+  p <- plot_network_changes_matrix(changes)
+  
+  impossible_index <- get_impossible_tile_layer(p)
+  
+  layer <- p$layers[[impossible_index]]
+  
+  expect_identical(
+    layer$aes_params$fill,
+    "grey90"
+  )
+})
+
+
+test_that("impossible cells are drawn below observed interactions", {
+  
+  changes <- make_undirected_two_guild_matrix_changes()
+  
+  p <- plot_network_changes_matrix(changes)
+  
+  impossible_index <- get_impossible_tile_layer(p)
+  interaction_index <- get_interaction_tile_layer(p)
+  
+  expect_lt(
+    impossible_index,
+    interaction_index
   )
 })

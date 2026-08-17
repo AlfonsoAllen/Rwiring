@@ -68,7 +68,9 @@ new_network_changes <- function(
 #' * the object inherits from `network_changes`;
 #' * the object contains `comparison`, `structural`, `links`, and `nodes`;
 #' * the three tabular components are data frames;
-#' * the comparison metadata contain the required fields;
+#' * the comparison metadata contain the required fields and valid network
+#'   properties, including self-link permissions;
+#' * self-link permissions are consistent with network topology;
 #' * the `structural` table contains the required link-change classification
 #'   columns and link counts;
 #' * the link and node tables contain the required identifiers and
@@ -169,6 +171,7 @@ validate_network_changes <- function(x) {
     "directed",
     "topology",
     "weighted",
+    "allow_self_links",
     "n_nodes_network_1",
     "n_nodes_network_2",
     "n_nodes_union",
@@ -212,7 +215,8 @@ validate_network_changes <- function(x) {
   
   logical_metadata <- c(
     "directed",
-    "weighted"
+    "weighted",
+    "allow_self_links"
   )
   
   for (field in logical_metadata) {
@@ -240,6 +244,16 @@ validate_network_changes <- function(x) {
     stop(
       "`comparison$topology` must be `\"unipartite\"` or ",
       "`\"multipartite\"`.",
+      call. = FALSE
+    )
+  }
+  
+  if (
+    x$comparison$topology == "multipartite" &&
+    isTRUE(x$comparison$allow_self_links)
+  ) {
+    stop(
+      "Multipartite networks cannot allow self-links.",
       call. = FALSE
     )
   }
@@ -425,8 +439,9 @@ validate_network_changes <- function(x) {
 #' Print a network changes object
 #'
 #' Displays the main characteristics of a comparison between two interaction
-#' networks, including the comparison type, network properties, and the
-#' numbers of nodes and links in each network and in their union.
+#' networks, including the comparison type, network properties, self-link
+#' permissions, and the numbers of nodes and links in each network and in
+#' their union.
 #'
 #' @param x A `network_changes` object.
 #' @param ... Additional arguments. Currently unused.
@@ -484,6 +499,12 @@ print.network_changes <- function(
   cat(
     "  Weighted:   ",
     comparison$weighted,
+    "\n",
+    sep = ""
+  )
+  cat(
+    "  Self-links: ",
+    if (comparison$allow_self_links) "allowed" else "not allowed",
     "\n",
     sep = ""
   )
@@ -549,7 +570,8 @@ print.network_changes <- function(
 #' @return An object of class `summary.network_changes`, represented as a
 #'   named list containing:
 #'
-#' * `comparison`: metadata describing the network comparison;
+#' * `comparison`: metadata describing the network comparison, including
+#'   network properties and self-link permissions;
 #' * `structural`: link counts for each valid link-change category and,
 #'   when applicable, aggregated and mean strength-change metrics.
 #'
@@ -633,6 +655,12 @@ print.summary.network_changes <- function(
   cat(
     "Weighted:        ",
     comparison$weighted,
+    "\n",
+    sep = ""
+  )
+  cat(
+    "Self-links:      ",
+    if (comparison$allow_self_links) "allowed" else "not allowed",
     "\n",
     sep = ""
   )

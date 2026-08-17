@@ -31,6 +31,11 @@ otherwise \code{NULL};
 \item \code{column_nodes}: ordered node information for matrix columns;
 \item \code{cells}: link-level classification data together with \code{Row_node},
 \code{Column_node}, \code{Row_index}, and \code{Column_index};
+\item \code{impossible_cells}: matrix positions corresponding to node pairs that
+cannot represent a valid interaction in either compared network because
+the nodes do not coexist, because the interaction would violate
+multipartite guild structure, or because it represents a disallowed
+self-link;
 \item \code{row_boundaries}: positions separating node-status groups along rows;
 \item \code{column_boundaries}: positions separating node-status groups along
 columns;
@@ -39,6 +44,17 @@ when applicable;
 \item \code{column_guild_boundaries}: positions separating guild blocks along
 columns when applicable.
 }
+
+Matrix cells that cannot represent a valid interaction are identified
+separately in \code{impossible_cells}. These include combinations between a
+lost and a gained node, since those nodes do not coexist in either network.
+For multipartite adjacency matrices, within-guild combinations are also
+considered impossible. For unipartite adjacency matrices, diagonal cells
+are considered impossible when self-links are not allowed.
+
+Empty matrix cells not included in \code{impossible_cells} represent
+interactions that are structurally possible but were not observed in
+either network.
 
 Boundary positions are expressed halfway between adjacent matrix cells
 (for example, \code{3.5} separates cells 3 and 4) so that they can be used

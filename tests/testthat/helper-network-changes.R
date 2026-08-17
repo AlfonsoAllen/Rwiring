@@ -98,6 +98,56 @@ make_weighted_changes <- function(strength_tolerance = 0) {
   )
 }
 
+make_self_link_prepared <- function(
+    allow_self_links = TRUE
+) {
+  
+  data <- data.frame(
+    Site = c(
+      "site_1", "site_1",
+      "site_1", "site_1"
+    ),
+    Time = c(
+      "early", "early",
+      "late", "late"
+    ),
+    Origin_node = c(
+      "A", "A",
+      "A", "A"
+    ),
+    Destiny_node = c(
+      "A", "B",
+      "A", "B"
+    ),
+    Strength = c(
+      2, 3,
+      4, 5
+    ),
+    stringsAsFactors = FALSE
+  )
+  
+  prepare_interactions(
+    data,
+    directed = FALSE,
+    multipartite = FALSE,
+    allow_self_links = allow_self_links
+  )
+}
+
+
+make_self_link_changes <- function() {
+  
+  quantify_network_changes(
+    make_self_link_prepared(
+      allow_self_links = TRUE
+    ),
+    site_1 = "site_1",
+    time_1 = "early",
+    site_2 = "site_1",
+    time_2 = "late"
+  )
+}
+
 
 make_binary_changes <- function() {
   quantify_network_changes(

@@ -23,7 +23,8 @@ The function verifies that:
 \item the object inherits from \code{temporal_interactions};
 \item the standardized interaction table is present;
 \item all mandatory interaction columns exist;
-\item the network metadata contain the required fields; and
+\item the network metadata contain the required fields;
+\item self-link permissions are valid and consistent with network topology; and
 \item guild columns are present whenever the object declares guild information.
 }
 

@@ -25,7 +25,8 @@
 An object of class \code{summary.network_changes}, represented as a
 named list containing:
 \itemize{
-\item \code{comparison}: metadata describing the network comparison;
+\item \code{comparison}: metadata describing the network comparison, including
+network properties and self-link permissions;
 \item \code{structural}: link counts for each valid link-change category and,
 when applicable, aggregated and mean strength-change metrics.
 }
@@ -34,8 +35,9 @@ when applicable, aggregated and mean strength-change metrics.
 }
 \description{
 Displays the main characteristics of a comparison between two interaction
-networks, including the comparison type, network properties, and the
-numbers of nodes and links in each network and in their union.
+networks, including the comparison type, network properties, self-link
+permissions, and the numbers of nodes and links in each network and in
+their union.
 
 Creates a compact summary of link changes between two interaction networks.
 

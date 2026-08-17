@@ -38,8 +38,9 @@
 #' `new_network_changes()`. The object contains four components:
 #'
 #' * `comparison`: metadata describing the network comparison, including the
-#'   site and time identifiers, comparison type, network properties, and the
-#'   numbers of nodes and links in each network and in their union.
+#'   site and time identifiers, comparison type, network properties,
+#'   self-link permissions, and the numbers of nodes and links in each network
+#'   and in their union.
 #' * `structural`: link counts for each valid combination of `Direction`,
 #'   `Mechanism`, and `Strength_direction`, complemented with aggregated
 #'   and mean strength metrics for weighted networks;
@@ -105,6 +106,10 @@
 #' Empty categories have zero link counts. For weighted networks, empty
 #' categories also have zero aggregated strength, whereas mean strength
 #' statistics are reported as `NA`.
+#'
+#' Network properties stored in `comparison`, including whether self-links are
+#' allowed, are inherited from the `temporal_interactions` object and are not
+#' recalculated during the comparison.
 #'
 #' @export
 quantify_network_changes <- function(
@@ -480,6 +485,7 @@ quantify_network_changes <- function(
     directed = x$network_type$directed,
     topology = x$network_type$topology,
     weighted = x$network_type$weighted,
+    allow_self_links = x$network_type$allow_self_links,
     n_nodes_network_1 = sum(nodes$Present_network_1),
     n_nodes_network_2 = sum(nodes$Present_network_2),
     n_nodes_union = nrow(nodes),

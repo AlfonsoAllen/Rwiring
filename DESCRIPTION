@@ -44,7 +44,8 @@ Depends:
     R (>= 4.1.0)
 Imports:
     stats,
-    ggplot2
+    ggplot2,
+    rlang
 Suggests:
     testthat (>= 3.0.0),
     knitr,

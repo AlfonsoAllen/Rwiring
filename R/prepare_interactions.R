@@ -76,13 +76,15 @@
 #'
 #' @param allow_self_links Logical. Whether links connecting a node to itself
 #'   are allowed in unipartite networks. Self-links are never allowed in
-#'   multipartite networks. Defaults to `FALSE`.
+#'   multipartite networks; in that case, the stored network metadata record
+#'   `allow_self_links = FALSE`. Defaults to `FALSE`.
 #'
 #' @return An object of class `temporal_interactions`. The object contains:
 #'
 #'   * `interactions`: the standardized interaction table.
 #'   * `network_type`: metadata describing whether the network is directed,
-#'     weighted, unipartite or multipartite, and its guild information.
+#'     weighted, unipartite or multipartite, whether self-links are allowed,
+#'     and the available guild information.
 #'   * `diagnostics`: information about removed zero-strength rows, aggregated
 #'     duplicates, binary conversion, and the number of input and output rows.
 #'
@@ -245,6 +247,8 @@ prepare_interactions <- function(
     directed = directed,
     topology = guild_info$topology,
     weighted = strength_info$weighted,
+    allow_self_links = isTRUE(allow_self_links) &&
+      guild_info$topology == "unipartite",
     has_guilds = guild_info$has_guilds,
     n_guilds = guild_info$n_guilds,
     guilds = guild_info$guilds,

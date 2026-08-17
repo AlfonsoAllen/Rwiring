@@ -28,6 +28,9 @@
 #' @param weighted A single non-missing logical value indicating whether
 #'   `Strength` represents quantitative interaction weights rather than binary
 #'   presence.
+#' @param allow_self_links A single non-missing logical value indicating
+#'   whether self-links are allowed. This can be `TRUE` only for unipartite
+#'   networks.
 #' @param has_guilds A single non-missing logical value indicating whether
 #'   guild information was supplied.
 #' @param n_guilds A single integer giving the number of guilds. It must be
@@ -45,6 +48,7 @@ new_temporal_interactions <- function(
     directed,
     topology,
     weighted,
+    allow_self_links,
     has_guilds,
     n_guilds,
     guilds = NULL,
@@ -62,6 +66,9 @@ new_temporal_interactions <- function(
     is.logical(weighted),
     length(weighted) == 1L,
     !is.na(weighted),
+    is.logical(allow_self_links),
+    length(allow_self_links) == 1L,
+    !is.na(allow_self_links),
     is.logical(has_guilds),
     length(has_guilds) == 1L,
     !is.na(has_guilds),
@@ -70,6 +77,13 @@ new_temporal_interactions <- function(
     is.null(guilds) || is.character(guilds),
     is.list(diagnostics)
   )
+  
+  if (topology == "multipartite" && allow_self_links) {
+    stop(
+      "`allow_self_links` must be FALSE for multipartite networks.",
+      call. = FALSE
+    )
+  }
   
   if (topology == "multipartite" && !has_guilds) {
     stop(
@@ -128,6 +142,7 @@ new_temporal_interactions <- function(
         directed = directed,
         topology = topology,
         weighted = weighted,
+        allow_self_links = allow_self_links,
         has_guilds = has_guilds,
         n_guilds = n_guilds,
         guilds = guilds
@@ -151,7 +166,8 @@ new_temporal_interactions <- function(
 #' * the object inherits from `temporal_interactions`;
 #' * the standardized interaction table is present;
 #' * all mandatory interaction columns exist;
-#' * the network metadata contain the required fields; and
+#' * the network metadata contain the required fields;
+#' * self-link permissions are valid and consistent with network topology; and
 #' * guild columns are present whenever the object declares guild information.
 #'
 #' This function is intended for internal use by class methods.
@@ -183,6 +199,7 @@ validate_temporal_interactions <- function(x) {
     "directed",
     "topology",
     "weighted",
+    "allow_self_links",
     "has_guilds",
     "n_guilds",
     "guilds"
@@ -233,6 +250,40 @@ validate_temporal_interactions <- function(x) {
     )
   }
   
+  if (
+    !is.logical(x$network_type$allow_self_links) ||
+    length(x$network_type$allow_self_links) != 1L ||
+    is.na(x$network_type$allow_self_links)
+  ) {
+    stop(
+      "`network_type$allow_self_links` must be a single non-missing ",
+      "logical value.",
+      call. = FALSE
+    )
+  }
+  
+  if (
+    x$network_type$topology == "multipartite" &&
+    isTRUE(x$network_type$allow_self_links)
+  ) {
+    stop(
+      "Multipartite networks cannot allow self-links.",
+      call. = FALSE
+    )
+  }
+  
+  if (
+    !is.character(x$network_type$topology) ||
+    length(x$network_type$topology) != 1L ||
+    is.na(x$network_type$topology) ||
+    !x$network_type$topology %in% c("unipartite", "multipartite")
+  ) {
+    stop(
+      "`network_type$topology` must be `\"unipartite\"` or `\"multipartite\"`.",
+      call. = FALSE
+    )
+  }
+  
   invisible(x)
 }
 
@@ -243,7 +294,8 @@ validate_temporal_interactions <- function(x) {
 #'
 #' Displays the principal characteristics of a
 #' `temporal_interactions` object, including the number of rows, sites and time
-#' points, the network type, the detected guilds, and all node identifiers.
+#' points, network type, self-link permissions, detected guilds, and all node
+#' identifiers.
 #'
 #' Guild and node names are displayed alphabetically and enclosed in quotation
 #' marks. This allows users to inspect the exact identifiers retained by
@@ -296,6 +348,12 @@ print.temporal_interactions <- function(
   cat("  Directed:   ", type$directed, "\n", sep = "")
   cat("  Topology:   ", type$topology, "\n", sep = "")
   cat("  Weighted:   ", type$weighted, "\n", sep = "")
+  cat(
+    "  Self-links: ",
+    if (type$allow_self_links) "allowed" else "not allowed",
+    "\n",
+    sep = ""
+  )
   cat("  Has guilds: ", type$has_guilds, "\n", sep = "")
   
   
@@ -337,7 +395,7 @@ print.temporal_interactions <- function(
 #' * the number of unique nodes;
 #' * the number of recorded and unique links;
 #' * total, mean and median interaction strength;
-#' * network type and guild information; and
+#' * network type, self-link permissions, and guild information; and
 #' * diagnostics generated during data preparation.
 #'
 #' A recorded link corresponds to one standardized row associated with a
@@ -402,6 +460,7 @@ summary.temporal_interactions <- function(
     directed = type$directed,
     topology = type$topology,
     weighted = type$weighted,
+    allow_self_links = type$allow_self_links,
     has_guilds = type$has_guilds,
     n_guilds = type$n_guilds,
     guilds = type$guilds,
@@ -444,6 +503,12 @@ print.summary.temporal_interactions <- function(
   cat("Directed:        ", x$directed, "\n", sep = "")
   cat("Topology:        ", x$topology, "\n", sep = "")
   cat("Weighted:        ", x$weighted, "\n", sep = "")
+  cat(
+    "Self-links:      ",
+    if (x$allow_self_links) "allowed" else "not allowed",
+    "\n",
+    sep = ""
+  )
   
   if (isTRUE(x$has_guilds)) {
     cat("Guilds:          ")

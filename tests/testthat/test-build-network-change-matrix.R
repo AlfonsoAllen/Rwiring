@@ -22,6 +22,7 @@ test_that("matrix builder returns the expected components", {
       "row_nodes",
       "column_nodes",
       "cells",
+      "impossible_cells",
       "row_boundaries",
       "column_boundaries",
       "row_guild_boundaries",
@@ -32,6 +33,7 @@ test_that("matrix builder returns the expected components", {
   expect_s3_class(result$row_nodes, "data.frame")
   expect_s3_class(result$column_nodes, "data.frame")
   expect_s3_class(result$cells, "data.frame")
+  expect_s3_class(result$impossible_cells, "data.frame")
 })
 
 
@@ -92,15 +94,24 @@ test_that("unipartite adjacency nodes are ordered by status and name", {
 })
 
 
-test_that("undirected adjacency matrices mirror every link", {
+test_that("undirected adjacency matrices mirror every off-diagonal link", {
   
   changes <- make_unipartite_matrix_changes()
   
   result <- build_network_change_matrix(changes)
   
+  n_self_links <- sum(
+    changes$links$Origin_node ==
+      changes$links$Destiny_node
+  )
+  
+  expected_n_cells <-
+    2L * nrow(changes$links) -
+    n_self_links
+  
   expect_equal(
     nrow(result$cells),
-    2L * nrow(changes$links)
+    expected_n_cells
   )
   
   for (i in seq_len(nrow(changes$links))) {
@@ -119,14 +130,18 @@ test_that("undirected adjacency matrices mirror every link", {
         Column_node == destiny
     )
     
-    reverse <- with(
-      result$cells,
-      Row_node == destiny &
-        Column_node == origin
-    )
-    
     expect_true(any(forward))
-    expect_true(any(reverse))
+    
+    if (origin != destiny) {
+      
+      reverse <- with(
+        result$cells,
+        Row_node == destiny &
+          Column_node == origin
+      )
+      
+      expect_true(any(reverse))
+    }
   }
 })
 
@@ -158,6 +173,28 @@ test_that("adjacency cell indices match node positions", {
   )
 })
 
+
+test_that("observed links are never classified as impossible cells in unipartite matrices", {
+  
+  changes <- make_unipartite_matrix_changes()
+  
+  result <- build_network_change_matrix(changes)
+  
+  cell_keys <- paste(
+    result$cells$Row_index,
+    result$cells$Column_index
+  )
+  
+  impossible_keys <- paste(
+    result$impossible_cells$Row_index,
+    result$impossible_cells$Column_index
+  )
+  
+  expect_length(
+    intersect(cell_keys, impossible_keys),
+    0L
+  )
+})
 
 # -------------------------------------------------------------------------
 # Two-guild undirected multipartite networks
@@ -315,6 +352,173 @@ test_that("invalid row guilds are rejected for interaction matrices", {
 
 
 # -------------------------------------------------------------------------
+# Structurally impossible cells
+# -------------------------------------------------------------------------
+
+
+test_that("lost-gained node combinations are structurally impossible", {
+  
+  changes <- make_undirected_two_guild_matrix_changes()
+  
+  result <- build_network_change_matrix(changes)
+  
+  row_status <- stats::setNames(
+    as.character(result$row_nodes$Node_status),
+    as.character(result$row_nodes$Node)
+  )
+  
+  column_status <- stats::setNames(
+    as.character(result$column_nodes$Node_status),
+    as.character(result$column_nodes$Node)
+  )
+  
+  observed_pairs <- paste(
+    row_status[result$impossible_cells$Row_node],
+    column_status[result$impossible_cells$Column_node],
+    sep = " -> "
+  )
+  
+  expect_true(
+    all(
+      observed_pairs %in%
+        c(
+          "lost -> gained",
+          "gained -> lost"
+        )
+    )
+  )
+  
+  expect_true(
+    any(observed_pairs == "lost -> gained") ||
+      any(observed_pairs == "gained -> lost")
+  )
+})
+
+
+test_that("interaction matrices identify all lost-gained combinations", {
+  
+  changes <- make_undirected_two_guild_matrix_changes()
+  
+  result <- build_network_change_matrix(changes)
+  
+  expected <- expand.grid(
+    Row_index = seq_len(nrow(result$row_nodes)),
+    Column_index = seq_len(nrow(result$column_nodes)),
+    KEEP.OUT.ATTRS = FALSE
+  )
+  
+  row_status <- as.character(
+    result$row_nodes$Node_status[expected$Row_index]
+  )
+  
+  column_status <- as.character(
+    result$column_nodes$Node_status[expected$Column_index]
+  )
+  
+  expected <- expected[
+    (
+      row_status == "lost" &
+        column_status == "gained"
+    ) |
+      (
+        row_status == "gained" &
+          column_status == "lost"
+      ),
+    ,
+    drop = FALSE
+  ]
+  
+  observed <- result$impossible_cells[
+    ,
+    c("Row_index", "Column_index"),
+    drop = FALSE
+  ]
+  
+  expect_setequal(
+    paste(expected$Row_index, expected$Column_index),
+    paste(observed$Row_index, observed$Column_index)
+  )
+})
+
+
+test_that("unipartite adjacency diagonal is impossible when self-links are not allowed", {
+  
+  changes <- make_unipartite_matrix_changes()
+  
+  expect_false(
+    changes$comparison$allow_self_links
+  )
+  
+  result <- build_network_change_matrix(changes)
+  
+  diagonal <- result$impossible_cells[
+    result$impossible_cells$Row_node ==
+      result$impossible_cells$Column_node,
+    ,
+    drop = FALSE
+  ]
+  
+  expect_equal(
+    nrow(diagonal),
+    nrow(result$row_nodes)
+  )
+  
+  expect_setequal(
+    diagonal$Row_node,
+    as.character(result$row_nodes$Node)
+  )
+})
+
+
+test_that("unipartite adjacency diagonal remains possible when self-links are allowed", {
+  
+  changes <- make_self_link_matrix_changes()
+  
+  expect_true(
+    changes$comparison$allow_self_links
+  )
+  
+  result <- build_network_change_matrix(changes)
+  
+  diagonal_impossible <- with(
+    result$impossible_cells,
+    Row_node == Column_node
+  )
+  
+  expect_false(
+    any(diagonal_impossible)
+  )
+})
+
+
+test_that("undirected self-links are not duplicated in adjacency matrices", {
+  
+  changes <- make_self_link_matrix_changes()
+  
+  result <- build_network_change_matrix(changes)
+  
+  self_links <- result$cells[
+    result$cells$Row_node ==
+      result$cells$Column_node,
+    ,
+    drop = FALSE
+  ]
+  
+  original_self_links <- changes$links[
+    changes$links$Origin_node ==
+      changes$links$Destiny_node,
+    ,
+    drop = FALSE
+  ]
+  
+  expect_equal(
+    nrow(self_links),
+    nrow(original_self_links)
+  )
+})
+
+
+# -------------------------------------------------------------------------
 # Directed multipartite networks
 # -------------------------------------------------------------------------
 
@@ -441,5 +645,89 @@ test_that("multipartite adjacency matrices report guild boundaries", {
   expect_identical(
     result$row_guild_boundaries,
     result$column_guild_boundaries
+  )
+})
+
+test_that("multipartite adjacency matrices mark within-guild cells as impossible", {
+  
+  changes <- make_three_guild_matrix_changes()
+  
+  result <- build_network_change_matrix(changes)
+  
+  row_guild <- stats::setNames(
+    as.character(result$row_nodes$Guild),
+    as.character(result$row_nodes$Node)
+  )
+  
+  column_guild <- stats::setNames(
+    as.character(result$column_nodes$Guild),
+    as.character(result$column_nodes$Node)
+  )
+  
+  impossible <- result$impossible_cells
+  
+  same_guild <-
+    row_guild[impossible$Row_node] ==
+    column_guild[impossible$Column_node]
+  
+  # At least some impossible cells arise from multipartite structure.
+  expect_true(any(same_guild))
+  
+  # Every possible within-guild pair must be marked as impossible.
+  all_pairs <- expand.grid(
+    Row_index = seq_len(nrow(result$row_nodes)),
+    Column_index = seq_len(nrow(result$column_nodes)),
+    KEEP.OUT.ATTRS = FALSE
+  )
+  
+  expected_same_guild <-
+    as.character(
+      result$row_nodes$Guild[all_pairs$Row_index]
+    ) ==
+    as.character(
+      result$column_nodes$Guild[all_pairs$Column_index]
+    )
+  
+  expected <- all_pairs[
+    expected_same_guild,
+    ,
+    drop = FALSE
+  ]
+  
+  observed_keys <- paste(
+    impossible$Row_index,
+    impossible$Column_index
+  )
+  
+  expected_keys <- paste(
+    expected$Row_index,
+    expected$Column_index
+  )
+  
+  expect_true(
+    all(expected_keys %in% observed_keys)
+  )
+})
+
+
+test_that("observed links are never classified as impossible cells in multipartite matrices", {
+  
+  changes <- make_three_guild_matrix_changes()
+  
+  result <- build_network_change_matrix(changes)
+  
+  cell_keys <- paste(
+    result$cells$Row_index,
+    result$cells$Column_index
+  )
+  
+  impossible_keys <- paste(
+    result$impossible_cells$Row_index,
+    result$impossible_cells$Column_index
+  )
+  
+  expect_length(
+    intersect(cell_keys, impossible_keys),
+    0L
   )
 })

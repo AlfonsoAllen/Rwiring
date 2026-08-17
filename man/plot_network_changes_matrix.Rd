@@ -55,7 +55,9 @@ Visualizes changes between two interaction networks using the matrix
 representation created internally by \code{\link[=build_network_change_matrix]{build_network_change_matrix()}}.
 }
 \details{
-Interaction persistence, loss, and gain are represented by cell colour.
+Interaction persistence, loss, and gain are represented by cell colour,
+whereas structurally impossible node combinations are shown with a light
+grey background.
 For persistent interactions in weighted networks, changes in interaction
 strength can additionally be indicated by upward and downward triangles.
 Interaction strength can also be optionally encoded by cell opacity.
@@ -85,6 +87,16 @@ Cell colour represents interaction change:
 
 The default colours use grey for persistent interactions, orange for lost
 interactions, and blue for gained interactions.
+
+Matrix cells shown with a light grey background represent node pairs that
+cannot form a valid interaction in either compared network. These include
+combinations between lost and gained nodes, which never coexist in the
+same network. In multipartite adjacency matrices, within-guild combinations
+are also structurally impossible. In unipartite adjacency matrices,
+diagonal cells are shown as impossible when self-links are not allowed.
+
+Empty white cells represent interactions that are structurally possible
+but were not observed in either network.
 
 Strength-change symbols are used only for persistent interactions because
 the strength direction of lost and gained interactions is already implied

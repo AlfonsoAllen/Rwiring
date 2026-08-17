@@ -23,7 +23,9 @@ The function verifies that:
 \item the object inherits from \code{network_changes};
 \item the object contains \code{comparison}, \code{structural}, \code{links}, and \code{nodes};
 \item the three tabular components are data frames;
-\item the comparison metadata contain the required fields;
+\item the comparison metadata contain the required fields and valid network
+properties, including self-link permissions;
+\item self-link permissions are consistent with network topology;
 \item the \code{structural} table contains the required link-change classification
 columns and link counts;
 \item the link and node tables contain the required identifiers and

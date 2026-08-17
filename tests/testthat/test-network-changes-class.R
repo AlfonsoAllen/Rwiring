@@ -12,6 +12,14 @@ test_that("constructor creates and validates a network_changes object", {
   )
 
   expect_no_error(validate_network_changes(changes))
+  
+  expect_true(
+    "allow_self_links" %in% names(changes$comparison)
+  )
+  
+  expect_false(
+    changes$comparison$allow_self_links
+  )
 })
 
 
@@ -40,6 +48,36 @@ test_that("validator detects missing components and malformed component types", 
   expect_error(
     validate_network_changes(malformed_structural),
     "`structural` must be a data frame"
+  )
+})
+
+
+test_that("validator checks self-link metadata", {
+  
+  changes <- make_weighted_changes()
+  
+  missing_self_links <- changes
+  missing_self_links$comparison$allow_self_links <- NULL
+  
+  expect_error(
+    validate_network_changes(missing_self_links),
+    "Missing fields: allow_self_links"
+  )
+  
+  invalid_self_links <- changes
+  invalid_self_links$comparison$allow_self_links <- NA
+  
+  expect_error(
+    validate_network_changes(invalid_self_links),
+    "allow_self_links"
+  )
+  
+  multipartite_self_links <- changes
+  multipartite_self_links$comparison$allow_self_links <- TRUE
+  
+  expect_error(
+    validate_network_changes(multipartite_self_links),
+    "Multipartite networks cannot allow self-links"
   )
 })
 
@@ -108,6 +146,9 @@ test_that("print.network_changes returns invisibly and prints key metadata", {
   expect_true(any(grepl("Nodes", output, fixed = TRUE)))
   expect_true(any(grepl("Links", output, fixed = TRUE)))
   expect_true(any(grepl("Weighted:", output, fixed = TRUE)))
+  expect_true(
+    any(grepl("Self-links: not allowed", output, fixed = TRUE))
+  )
 
   # n_changed_links is no longer part of the comparison metadata.
   expect_false(any(grepl("Changed:", output, fixed = TRUE)))
@@ -163,6 +204,9 @@ test_that("print.summary.network_changes returns invisibly and prints link-chang
   expect_true(any(grepl("Link changes", output, fixed = TRUE)))
   expect_true(any(grepl("Strength_direction", output, fixed = TRUE)))
   expect_true(any(grepl("n_links", output, fixed = TRUE)))
+  expect_true(
+    any(grepl("Self-links:.*not allowed", output))
+  )
 })
 
 

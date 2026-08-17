@@ -89,14 +89,16 @@ Defaults to \code{"remove"}.}
 
 \item{allow_self_links}{Logical. Whether links connecting a node to itself
 are allowed in unipartite networks. Self-links are never allowed in
-multipartite networks. Defaults to \code{FALSE}.}
+multipartite networks; in that case, the stored network metadata record
+\code{allow_self_links = FALSE}. Defaults to \code{FALSE}.}
 }
 \value{
 An object of class \code{temporal_interactions}. The object contains:
 \itemize{
 \item \code{interactions}: the standardized interaction table.
 \item \code{network_type}: metadata describing whether the network is directed,
-weighted, unipartite or multipartite, and its guild information.
+weighted, unipartite or multipartite, whether self-links are allowed,
+and the available guild information.
 \item \code{diagnostics}: information about removed zero-strength rows, aggregated
 duplicates, binary conversion, and the number of input and output rows.
 }
