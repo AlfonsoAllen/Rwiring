@@ -374,23 +374,15 @@ changes$links |>
 
 # Matrix visualization
 
-Network changes can be visualized directly from a `network_changes`
-object using `plot_network_changes_matrix()`.
+Network changes can be visualized directly from a `network_changes` object using `plot_network_changes_matrix()`.
 
-The matrix representation is selected automatically according to network
-topology and direction:
+The matrix representation is selected automatically according to network topology and direction:
 
--   undirected multipartite networks with exactly two guilds are
-    represented as rectangular interaction matrices;
+-   undirected multipartite networks with exactly two guilds are represented as rectangular interaction matrices;
 -   unipartite networks are represented as square adjacency matrices;
--   directed multipartite networks and multipartite networks with more
-    than two guilds are represented as square adjacency matrices.
+-   directed multipartite networks and multipartite networks with more than two guilds are represented as square adjacency matrices.
 
-Nodes are grouped according to their status in the comparison: permanent
-nodes are shown first, followed by lost and gained nodes. Within each
-group, nodes are ordered alphabetically. For multipartite adjacency
-matrices, guilds form separate alphabetical blocks and node-status
-ordering is applied within each guild.
+Nodes are grouped according to their status in the comparison: permanent nodes are shown first, followed by lost and gained nodes. Within each group, nodes are ordered alphabetically. For multipartite adjacency matrices, guilds form separate alphabetical blocks and node-status ordering is applied within each guild.
 
 Interaction change is represented by cell colour:
 
@@ -398,16 +390,33 @@ Interaction change is represented by cell colour:
 -   orange: lost interaction;
 -   blue: gained interaction.
 
-For persistent interactions in weighted networks, changes in interaction
-strength are additionally represented by symbols:
+For persistent interactions in weighted networks, changes in interaction strength are additionally represented by symbols:
 
 -   upward triangle: strengthened interaction;
 -   downward triangle: weakened interaction;
 -   no symbol: unchanged interaction.
 
-Lost and gained interactions do not receive strength-change symbols
-because their weakening or strengthening is already implied by their
-structural change.
+Lost and gained interactions do not receive strength-change symbols because their weakening or strengthening is already implied by their structural change.
+
+For weighted networks, interaction magnitude can optionally be encoded by cell opacity using `encode_strength = TRUE`. Persistent interactions use their mean strength across the two networks, whereas lost and gained interactions use their strength in network 1 and network 2, respectively. The `strength_max` argument can be used to apply a common opacity scale
+across multiple network comparisons.
+
+Matrix cells that cannot represent a valid interaction in either network are shown with a light grey background. These structurally impossible cells include combinations of lost and gained nodes, which never coexist in either network. In multipartite adjacency matrices, within-guild combinations are also considered impossible. In unipartite adjacency matrices, diagonal cells are considered impossible when self-links are not allowed. Empty cells without this background represent interactions that are structurally possible but were not observed in either network.
+
+For example, the network changes can be visualized using the default representation:
+
+```r
+plot_network_changes_matrix(changes)
+```
+
+For weighted networks, interaction strength can additionally be encoded by cell opacity:
+
+```r
+plot_network_changes_matrix(
+  changes,
+  encode_strength = TRUE
+)
+```
 
 ## Basic visualization
 
@@ -415,8 +424,7 @@ structural change.
 plot_network_changes_matrix(changes)
 ```
 
-For undirected two-guild multipartite networks, the guild assigned to
-rows can be selected explicitly:
+For undirected two-guild multipartite networks, the guild assigned to rows can be selected explicitly:
 
 ``` r
 plot_network_changes_matrix(
@@ -436,8 +444,7 @@ plot_network_changes_matrix(
 
 ## Encoding interaction strength
 
-For weighted networks, interaction magnitude can optionally be
-represented by cell opacity:
+For weighted networks, interaction magnitude can optionally be represented by cell opacity:
 
 ``` r
 plot_network_changes_matrix(
@@ -463,8 +470,7 @@ plot_network_changes_matrix(
 )
 ```
 
-A common maximum strength can also be supplied when comparing several
-plots:
+A common maximum strength can also be supplied when comparing several plots:
 
 ``` r
 plot_network_changes_matrix(
@@ -474,15 +480,13 @@ plot_network_changes_matrix(
 )
 ```
 
-Using the same `strength_max` across plots makes opacity directly
-comparable between network comparisons.
+Using the same `strength_max` across plots makes opacity directly comparable between network comparisons.
 
 ------------------------------------------------------------------------
 
 ## Citation
 
-If you use **Rwiring**, please cite the accompanying methodological
-publication once available.
+If you use **Rwiring**, please cite the accompanying methodological publication once available.
 
 ------------------------------------------------------------------------
 
