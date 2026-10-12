@@ -1,4 +1,5 @@
 # Rwiring
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23324536.svg)](https://doi.org/10.5281/zenodo.23324536)
 
 > **Analysis of structural and weighted changes in ecological
 > interaction networks**
